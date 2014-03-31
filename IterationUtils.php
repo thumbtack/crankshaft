@@ -2027,7 +2027,7 @@ class TTSet extends Iterable implements \Countable {
 
     private function get_hash_key($item) {
         if (!is_scalar($item) && $item !== null) {
-             throw new InvalidArgumentException('Only scalar values can be stored in a TTSet.');
+             throw new \InvalidArgumentException('Only scalar values can be stored in a TTSet.');
         }
 
         return gettype($item) . ":$item";
