@@ -1,4 +1,4 @@
 iteration-utils
 ===============
 
-PHP version itertools
+PHP version of Python's itertools
