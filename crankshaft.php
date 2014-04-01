@@ -1,37 +1,37 @@
 <?php
 
-require_once('IterationUtils.php');
+require_once('lib/Crankshaft.php');
 
 /**
  * Public: Wrap any array or traversable object in an object that extends Iterable.
  *
  * Examples
  *
- *   tt_iter([1, 2, 3, 4]) instanceof IterationsUtils\Iterable
+ *   tt_iter([1, 2, 3, 4]) instanceof Crankshaft\Iterable
  *   // => true
  *
  * Returns an Iterable. If the underlying traversable object is countable, the returned
  *   Iterable will also be countable.
- * Throws an IterationUtils\NotTraversableError if the given argument is not traversable.
+ * Throws an Crankshaft\NotTraversableError if the given argument is not traversable.
  */
 function tt_iter($traversable) {
     if ($traversable instanceof \Iterable) {
         return $traversable;
     } else if (is_array($traversable)) {
-        return new IterationUtils\ArrayIterable($traversable);
+        return new Crankshaft\ArrayIterable($traversable);
     } else if (is_object($traversable) && $traversable instanceof \Iterator) {
         return $traversable instanceof \Countable
-            ? new IterationUtils\CountableIteratorIterable(count($traversable), $traversable)
-            : new IterationUtils\IteratorIterable($traversable);
+            ? new Crankshaft\CountableIteratorIterable(count($traversable), $traversable)
+            : new Crankshaft\IteratorIterable($traversable);
     } else if (is_object($traversable) && $traversable instanceof \IteratorAggregate) {
         return $traversable instanceof \Countable
-            ? new IterationUtils\CountableIteratorAggregateIterable(
+            ? new Crankshaft\CountableIteratorAggregateIterable(
                 count($traversable),
                 $traversable
             )
-            : new IterationUtils\IteratorAggregateIterable($traversable);
+            : new Crankshaft\IteratorAggregateIterable($traversable);
     } else {
-        throw new IterationUtils\NotTraversableError(
+        throw new Crankshaft\NotTraversableError(
             var_dump($traversable, true) . ' is not traversable.'
         );
     }
@@ -58,7 +58,7 @@ function tt_iter($traversable) {
  *   // => true
  *
  * Returns true if the key was found in the container; false if otherwise.
- * Throws an IterationUtils\NotTraversableError if the given argument is not traversable.
+ * Throws an Crankshaft\NotTraversableError if the given argument is not traversable.
  */
 function tt_has_key($container, $key) {
     if (is_array($container)) {
@@ -99,7 +99,7 @@ function tt_range($start, $stop=null, $step=1) {
         $start = 0;
     }
 
-    return tt_iter(new IterationUtils\BoundedSequenceIterator($start, $stop, $step));
+    return tt_iter(new Crankshaft\BoundedSequenceIterator($start, $stop, $step));
 }
 
 /**
@@ -122,7 +122,7 @@ function tt_range($start, $stop=null, $step=1) {
  * Returns an Iterable that will yield each value in the sequence.
  */
 function tt_count($start=0, $step=1) {
-    return tt_iter(new IterationUtils\SequenceIterator($start, $step));
+    return tt_iter(new Crankshaft\SequenceIterator($start, $step));
 }
 
 /**
@@ -167,8 +167,8 @@ function tt_chain(/* $traversables... */) {
  */
 function tt_repeat($value, $count=null) {
     $generator = $count === null
-        ? new IterationUtils\RepeatValueGenerator($value)
-        : new IterationUtils\BoundedRepeatValueGenerator($value, $count);
+        ? new Crankshaft\RepeatValueGenerator($value)
+        : new Crankshaft\BoundedRepeatValueGenerator($value, $count);
 
     return tt_iter($generator);
 }
@@ -194,7 +194,7 @@ function tt_repeat($value, $count=null) {
  */
 function tt_zip(/* $traversables... */) {
     $iterators = array_map('tt_to_iterator', func_get_args());
-    return tt_iter(new IterationUtils\ZipGenerator($iterators, false));
+    return tt_iter(new Crankshaft\ZipGenerator($iterators, false));
 }
 
 /**
@@ -221,7 +221,7 @@ function tt_zip(/* $traversables... */) {
  */
 function tt_zip_longest($fill /* , $traversables... */) {
     $iterators = array_map('tt_to_iterator', array_slice(func_get_args(), 1));
-    return tt_iter(new IterationUtils\ZipGenerator($iterators, true, $fill));
+    return tt_iter(new Crankshaft\ZipGenerator($iterators, true, $fill));
 }
 
 /**
@@ -242,7 +242,7 @@ function tt_zip_longest($fill /* , $traversables... */) {
  */
 function tt_combine($keys, $values) {
     return tt_iter(
-        new IterationUtils\CombiningIterator(
+        new Crankshaft\CombiningIterator(
             tt_to_iterator($keys),
             tt_to_iterator($values)
         )
@@ -256,7 +256,7 @@ function tt_combine($keys, $values) {
  * $traversable - An array or an Iterator or IteratorAggregate object
  *
  * Returns an Iterator.
- * Throws an IterationUtils\NotTraversableError if the given argument is not traversable.
+ * Throws an Crankshaft\NotTraversableError if the given argument is not traversable.
  */
 function tt_to_iterator($traversable) {
     if (is_array($traversable)) {
@@ -266,14 +266,14 @@ function tt_to_iterator($traversable) {
     } else if (is_object($traversable) && $traversable instanceof \IteratorAggregate) {
         return $traversable->getIterator();
     } else {
-        throw new IterationUtils\NotTraversableError(
+        throw new Crankshaft\NotTraversableError(
             tt_inspect($traversable) . ' must be an array, Iterator, or IteratorAggregate.'
         );
     }
 }
 
 function tt_set($items=null) {
-    return new IterationUtils\TTSet($items);
+    return new Crankshaft\Set($items);
 }
 
 function tt_to_bool($value) {

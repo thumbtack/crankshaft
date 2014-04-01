@@ -1,7 +1,7 @@
 <?php
 
-require_once('IterationUtils.php');
-require_once('global_functions.php');
+require_once('../lib/Crankshaft.php');
+require_once('../crankshaft.php');
 require_once('simpletest/autorun.php');
 
 class PluckTestSimpleObject {
@@ -12,7 +12,7 @@ class PluckTestSimpleObject {
     }
 }
 
-class PluckTestContainerObject implements IterationUtils\PropertyContainer {
+class PluckTestContainerObject implements Crankshaft\PropertyContainer {
     public $key;
     private $values;
 
@@ -197,7 +197,7 @@ class IterableTest extends UnitTestCase {
 
         try {
             tt_iter([])->reduce($add);
-        } catch (IterationUtils\EmptyIterableError $e) {
+        } catch (Crankshaft\EmptyIterableError $e) {
             $this->pass();
             return;
         }
@@ -228,7 +228,7 @@ class IterableTest extends UnitTestCase {
 
         try {
             tt_set()->reduce($min);
-        } catch (IterationUtils\EmptyIterableError $e) {
+        } catch (Crankshaft\EmptyIterableError $e) {
             $this->pass();
             return;
         }
@@ -727,7 +727,7 @@ class IterableTest extends UnitTestCase {
 
         try {
             tt_iter([])->min();
-        } catch (IterationUtils\EmptyIterableError $e) {
+        } catch (Crankshaft\EmptyIterableError $e) {
             $this->pass();
             return;
         }
@@ -761,7 +761,7 @@ class IterableTest extends UnitTestCase {
 
         try {
             tt_iter([])->max();
-        } catch (IterationUtils\EmptyIterableError $e) {
+        } catch (Crankshaft\EmptyIterableError $e) {
             $this->pass();
             return;
         }
@@ -825,7 +825,7 @@ class IterableTest extends UnitTestCase {
     }
 
     private function assert_values_same($expected, $actual) {
-        if ($actual instanceof IterationUtils\Iterable) {
+        if ($actual instanceof Crankshaft\Iterable) {
             $actual = $actual->to_array();
         }
 
@@ -860,7 +860,7 @@ class SampleIterator implements \Iterator {
     }
 }
 
-class TTSetTest extends UnitTestCase {
+class SetTest extends UnitTestCase {
     private function get_sorted_values_from_set($set) {
         $values = [];
         foreach ($set as $value) {

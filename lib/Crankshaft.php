@@ -1,6 +1,6 @@
 <?php
 
-namespace IterationUtils;
+namespace Crankshaft;
 
 class Error extends \Exception {}
 
@@ -1122,7 +1122,7 @@ abstract class Iterable implements \IteratorAggregate {
     /**
      * Public: Load all values from this iterable into a set.
      *
-     * Returns a TTSet containing every remaining value in this iterable.
+     * Returns a Set containing every remaining value in this iterable.
      */
     public function to_set() {
         return tt_set($this);
@@ -1928,7 +1928,7 @@ class ZipGenerator extends Generator {
     }
 }
 
-class TTSet extends Iterable implements \Countable {
+class Set extends Iterable implements \Countable {
     private $hash = [];
 
     public function __construct($iterable=null) {
@@ -1951,8 +1951,8 @@ class TTSet extends Iterable implements \Countable {
         }
     }
 
-    public function intersection(TTSet $other) {
-        $intersection_set = new TTSet();
+    public function intersection(Set $other) {
+        $intersection_set = new Set();
         foreach ($this as $item) {
             if ($other->contains($item)) {
                 $intersection_set->add($item);
@@ -1961,15 +1961,15 @@ class TTSet extends Iterable implements \Countable {
         return $intersection_set;
     }
 
-    public function union(TTSet $other) {
-        $union_set = new TTSet();
+    public function union(Set $other) {
+        $union_set = new Set();
         $union_set->update($other);
         $union_set->update($this);
         return $union_set;
     }
 
-    public function difference(TTSet $other) {
-        $difference_set = new TTSet();
+    public function difference(Set $other) {
+        $difference_set = new Set();
         foreach ($this as $item) {
             if (!$other->contains($item)) {
                 $difference_set->add($item);
@@ -1978,7 +1978,7 @@ class TTSet extends Iterable implements \Countable {
         return $difference_set;
     }
 
-    public function equals(TTSet $other) {
+    public function equals(Set $other) {
         if (count($other) !== count($this)) {
             return false;
         }
@@ -1992,7 +1992,7 @@ class TTSet extends Iterable implements \Countable {
         return true;
     }
 
-    public function is_subset(TTSet $other) {
+    public function is_subset(Set $other) {
         foreach ($this as $item) {
             if (!$other->contains($item)) {
                 return false;
@@ -2001,7 +2001,7 @@ class TTSet extends Iterable implements \Countable {
         return true;
     }
 
-    public function is_superset(TTSet $other) {
+    public function is_superset(Set $other) {
         return $other->is_subset($this);
     }
 
@@ -2027,7 +2027,7 @@ class TTSet extends Iterable implements \Countable {
 
     private function get_hash_key($item) {
         if (!is_scalar($item) && $item !== null) {
-             throw new \InvalidArgumentException('Only scalar values can be stored in a TTSet.');
+             throw new \InvalidArgumentException('Only scalar values can be stored in a Set.');
         }
 
         return gettype($item) . ":$item";
