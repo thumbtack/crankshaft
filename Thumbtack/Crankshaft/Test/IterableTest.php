@@ -1,52 +1,17 @@
 <?php
 
-require_once('../lib/Crankshaft.php');
-require_once('../crankshaft.php');
-require_once('simpletest/autorun.php');
+namespace Thumbtack\Crankshaft\Test;
 
-class PluckTestSimpleObject {
-    public function __construct(array $values) {
-        foreach ($values as $key => $value) {
-            $this->$key = $value;
-        }
-    }
-}
+require_once(dirname(__FILE__) . '/../register_globals.php');
 
-class PluckTestContainerObject implements Crankshaft\PropertyContainer {
-    public $key;
-    private $values;
+use Thumbtack\Crankshaft;
 
-    public function __construct(array $values) {
-        $this->values = $values;
-    }
-
-    public function get($key) {
-        return $this->values[$key];
-    }
-}
-
-class PluckableProperties {
-    private $data;
-
-    public function __construct(array $data) {
-        $this->data = $data;
-    }
-
-    public function __get($name) {
-        return $this->data[$name];
-    }
-
-    public function __isset($name) {
-        return isset($this->data[$name]);
-    }
-}
-
-class IterableTest extends UnitTestCase {
+class IterableTest extends \UnitTestCase {
     public function test_each() {
         $input = ['a' => 1, 'c' => 2, 'e' => 3, 'g' => 4];
         $observed = [];
 
-        tt_iter($input)->each(function($value, $key) use (&$observed) {
+        cs_iter($input)->each(function($value, $key) use (&$observed) {
             $observed[$key] = $value;
         });
 
@@ -63,7 +28,7 @@ class IterableTest extends UnitTestCase {
         ];
         $seen_keys = [];
 
-        $map_result = tt_iter($this->sample_iterator())
+        $map_result = cs_iter($this->sample_iterator())
             ->map(function($value, $key) use (&$seen_keys) {
                 $seen_keys[] = $key;
                 return $value * $value;
@@ -83,7 +48,7 @@ class IterableTest extends UnitTestCase {
 
         $seen_values = [];
 
-        $map_result = tt_iter($this->sample_iterator())
+        $map_result = cs_iter($this->sample_iterator())
             ->map_keys(function($key, $value) use (&$seen_values) {
                 $seen_values[] = $value;
                 return strtoupper($key);
@@ -93,10 +58,10 @@ class IterableTest extends UnitTestCase {
     }
 
     public function test_bare_filter() {
-        $object = new stdClass;
+        $object = new \stdClass;
         $input = [1, 0, true, '', false, 'hi', null, [1, 2], [], $object];
         $expected = [0 => 1, 2 => true, 5 => 'hi', 7 => [1, 2], 9 => $object];
-        $actual = tt_iter($input)->filter()->to_array();
+        $actual = cs_iter($input)->filter()->to_array();
 
         $this->assertSame($expected, $actual);
     }
@@ -104,7 +69,7 @@ class IterableTest extends UnitTestCase {
     public function test_filter_with_callback() {
         $input = range(0, 9);
         $expected = [0 => 0, 2 => 2, 4 => 4, 6 => 6, 8 => 8];
-        $actual = tt_iter($input)
+        $actual = cs_iter($input)
             ->filter(function($value) { return $value % 2 == 0; })
             ->to_array();
 
@@ -112,10 +77,10 @@ class IterableTest extends UnitTestCase {
     }
 
     public function test_bare_reject() {
-        $object = new stdClass;
+        $object = new \stdClass;
         $input = [1, 0, true, '', false, 'hi', null, [1, 2], [], $object];
         $expected = [1 => 0, 3 => '', 4 => false, 6 => null, 8 => []];
-        $actual = tt_iter($input)->reject()->to_array();
+        $actual = cs_iter($input)->reject()->to_array();
 
         $this->assertSame($expected, $actual);
     }
@@ -123,7 +88,7 @@ class IterableTest extends UnitTestCase {
     public function test_reject_with_callback() {
         $input = range(0, 9);
         $expected = [1 => 1, 3 => 3, 5 => 5, 7 => 7, 9 => 9];
-        $actual = tt_iter($input)
+        $actual = cs_iter($input)
             ->reject(function($value) { return $value % 2 == 0; })
             ->to_array();
 
@@ -136,7 +101,7 @@ class IterableTest extends UnitTestCase {
                 ['x' => 2, 'y' => 'bar'],
                 ['x' => 2, 'y' => 'baz'],
             ],
-            tt_iter(
+            cs_iter(
                 [
                     ['x' => 1, 'y' => 'foo'],
                     ['x' => 2, 'y' => 'bar'],
@@ -147,7 +112,7 @@ class IterableTest extends UnitTestCase {
 
         $this->assert_values_same(
             [],
-            tt_iter(
+            cs_iter(
                 [
                     ['x' => 1, 'y' => 'foo'],
                     ['x' => 2, 'y' => 'bar'],
@@ -158,7 +123,7 @@ class IterableTest extends UnitTestCase {
 
         $this->assert_values_same(
             [],
-            tt_iter(
+            cs_iter(
                 [
                     ['x' => 1, 'y' => 'foo'],
                     ['x' => 2, 'y' => 'bar'],
@@ -177,26 +142,26 @@ class IterableTest extends UnitTestCase {
 
         $this->assertEqual(
             array_sum($numbers),
-            tt_iter($numbers)->reduce($add)
+            cs_iter($numbers)->reduce($add)
         );
 
         $this->assertEqual(
             array_sum(iterator_to_array($sample_iterator)),
-            tt_iter($sample_iterator)->reduce($add)
+            cs_iter($sample_iterator)->reduce($add)
         );
 
         $this->assertEqual(
             array_product($numbers),
-            tt_iter($numbers)->reduce($multiply)
+            cs_iter($numbers)->reduce($multiply)
         );
 
         $this->assertEqual(
             3,
-            tt_iter([])->reduce($multiply, 3)
+            cs_iter([])->reduce($multiply, 3)
         );
 
         try {
-            tt_iter([])->reduce($add);
+            cs_iter([])->reduce($add);
         } catch (Crankshaft\EmptyIterableError $e) {
             $this->pass();
             return;
@@ -206,8 +171,8 @@ class IterableTest extends UnitTestCase {
     }
 
     public function test_reduce_sets() {
-        $set = tt_set(['x', 'k', 'c', 'd']);
-        $one_letter_set = tt_set(['x']);
+        $set = cs_set(['x', 'k', 'c', 'd']);
+        $one_letter_set = cs_set(['x']);
 
         $min = function($memo, $value) { return $value < $memo ? $value : $memo; };
 
@@ -223,11 +188,11 @@ class IterableTest extends UnitTestCase {
 
         $this->assertSame(
             null,
-            tt_set()->reduce($min, null)
+            cs_set()->reduce($min, null)
         );
 
         try {
-            tt_set()->reduce($min);
+            cs_set()->reduce($min);
         } catch (Crankshaft\EmptyIterableError $e) {
             $this->pass();
             return;
@@ -238,7 +203,7 @@ class IterableTest extends UnitTestCase {
 
     public function test_slice() {
         $input = ['a', 'b', 'c', 'd', 'e', 'f', 'g'];
-        $iter = tt_iter($input);
+        $iter = cs_iter($input);
 
         $this->assertSame($input, $iter->slice(0)->to_array());
         $this->assertSame(count($input), count($iter->slice(0)));
@@ -257,59 +222,59 @@ class IterableTest extends UnitTestCase {
 
     public function test_first() {
         $input = [2, 7, 5];
-        $iter = tt_iter($input);
+        $iter = cs_iter($input);
         $this->assertEqual($input[0], $iter->first());
-        $iter = tt_iter([]);
+        $iter = cs_iter([]);
         $this->assertEqual(null, $iter->first());
     }
 
     public function test_last() {
         $input = [2, 7, 5];
-        $iter = tt_iter($input);
+        $iter = cs_iter($input);
         $this->assertEqual($input[count($input) - 1], $iter->last());
-        $iter = tt_iter([]);
+        $iter = cs_iter([]);
         $this->assertEqual(null, $iter->last());
     }
 
     public function test_bare_any() {
-        $this->assertTrue(tt_iter([0, 1, 2])->any());
-        $this->assertTrue(tt_iter([false, true])->any());
-        $this->assertTrue(tt_iter(["hello"])->any());
+        $this->assertTrue(cs_iter([0, 1, 2])->any());
+        $this->assertTrue(cs_iter([false, true])->any());
+        $this->assertTrue(cs_iter(["hello"])->any());
 
-        $this->assertFalse(tt_iter([])->any()); // matches Python
-        $this->assertFalse(tt_iter([false, null])->any());
+        $this->assertFalse(cs_iter([])->any()); // matches Python
+        $this->assertFalse(cs_iter([false, null])->any());
     }
 
     public function test_any_with_callback() {
         $this->assertTrue(
-            tt_iter([1, 2, 3, 4, 5])->any(function($value) {
+            cs_iter([1, 2, 3, 4, 5])->any(function($value) {
                 return $value == 3;
             })
         );
 
         $this->assertFalse(
-            tt_iter([1, 2, 3, 4, 5])->any(function($value) {
+            cs_iter([1, 2, 3, 4, 5])->any(function($value) {
                 return $value > 8;
             })
         );
     }
 
     public function test_bare_all() {
-        $this->assertTrue(tt_iter([])->all()); // matches Python
-        $this->assertTrue(tt_iter([1, 'hi', true, [3, 4]])->all());
+        $this->assertTrue(cs_iter([])->all()); // matches Python
+        $this->assertTrue(cs_iter([1, 'hi', true, [3, 4]])->all());
 
-        $this->assertFalse(tt_iter([1, 2, 3, 0, 5])->all());
+        $this->assertFalse(cs_iter([1, 2, 3, 0, 5])->all());
     }
 
     public function test_all_with_callback() {
         $this->assertTrue(
-            tt_iter([1, 2, 3, 4, 5])->all(function($value) {
+            cs_iter([1, 2, 3, 4, 5])->all(function($value) {
                 return $value > 0;
             })
         );
 
         $this->assertFalse(
-            tt_iter([1, 2, 3, 4, 5])->all(function($value) {
+            cs_iter([1, 2, 3, 4, 5])->all(function($value) {
                 return $value == 3;
             })
         );
@@ -318,26 +283,26 @@ class IterableTest extends UnitTestCase {
     public function test_find() {
         $this->assertSame(
             null,
-            tt_iter([1, 2, 3])->find(function($value) {
+            cs_iter([1, 2, 3])->find(function($value) {
                 return $value > 3;
             })
         );
         $this->assertSame(
             0,
-            tt_iter([1, 2, 3])->find(
+            cs_iter([1, 2, 3])->find(
                 function($value) { return $value > 3; },
                 0
             )
         );
         $this->assertSame(
             3,
-            tt_iter([1, 2, 3, 4])->find(function($value) {
+            cs_iter([1, 2, 3, 4])->find(function($value) {
                 return $value > 2;
             })
         );
         $this->assertSame(
             3,
-            tt_iter($this->sample_iterator())->find(function($value) {
+            cs_iter($this->sample_iterator())->find(function($value) {
                 return $value > 2;
             })
         );
@@ -346,35 +311,35 @@ class IterableTest extends UnitTestCase {
     public function test_partition() {
         $this->assertSame(
             [],
-            tt_iter([])->partition('tt_identity')->to_array()
+            cs_iter([])->partition('cs_identity')->to_array()
         );
         $this->assertSame(
             [1 => [1], 2 => [2], 3 => [3]],
-            tt_iter([1, 2, 3])->partition('tt_identity')->to_array()
+            cs_iter([1, 2, 3])->partition('cs_identity')->to_array()
         );
 
-        list($partitions, $null_group) = tt_iter([1, 2, 3])->partition('tt_identity', true);
+        list($partitions, $null_group) = cs_iter([1, 2, 3])->partition('cs_identity', true);
         $this->assertSame([1 => [1], 2 => [2], 3 => [3]], $partitions->to_array());
         $this->assertSame([], $null_group->to_array());
 
 
         $this->assertSame(
             [1 => [1], 2 => [2], 3 => [3]],
-            tt_iter([1, 2, 3, null])->partition('tt_identity')->to_array()
+            cs_iter([1, 2, 3, null])->partition('cs_identity')->to_array()
         );
 
         list($partitions, $null_group)
-            = tt_iter([1, null, 2, 3, null])->partition('tt_identity', true);
+            = cs_iter([1, null, 2, 3, null])->partition('cs_identity', true);
         $this->assertSame([1 => [1], 2 => [2], 3 => [3]], $partitions->to_array());
         $this->assertSame([null, null], $null_group->to_array());
 
         $this->assertSame(
             [1 => [1], 2 => [2], 3 => [3]],
-            tt_iter([1, null, 2, 3, null])->partition('tt_identity')->to_array()
+            cs_iter([1, null, 2, 3, null])->partition('cs_identity')->to_array()
         );
         $this->assertSame(
             [1 => [1, 4], 2 => [2, 5], 0 => [3, 6]],
-            tt_iter([1, 2, 3, 4, 5, 6])
+            cs_iter([1, 2, 3, 4, 5, 6])
                 ->partition(function($value, $key) {
                     return $value % 3;
                 })
@@ -383,7 +348,7 @@ class IterableTest extends UnitTestCase {
     }
 
     public function test_partition_by() {
-        $this->assert_values_same([], tt_iter([])->partition_by('field'));
+        $this->assert_values_same([], cs_iter([])->partition_by('field'));
 
         $input_values = [
             ['a' => 1, 'b' => 2],
@@ -398,11 +363,11 @@ class IterableTest extends UnitTestCase {
                 1 => [['a' => 1, 'b' => 2], ['a' => 1, 'b' => 3]],
                 2 => [['a' => 2], ['b' => 1, 'a' => 2]],
             ],
-            tt_iter($input_values)->partition_by('a')
+            cs_iter($input_values)->partition_by('a')
         );
 
         $input_values = [['a' => 1], ['b' => 1], ['a' => 1, 'b' => 2], ['b' => 3]];
-        list($groups, $null_group) = tt_iter($input_values)->partition_by('a', true);
+        list($groups, $null_group) = cs_iter($input_values)->partition_by('a', true);
         $this->assert_values_same([1 => [['a' => 1], ['a' => 1, 'b' => 2]]], $groups);
         $this->assert_values_same([['b' => 1], ['b' => 3]], $null_group);
     }
@@ -410,27 +375,27 @@ class IterableTest extends UnitTestCase {
     public function test_unique() {
         $this->assertSame(
             [],
-            tt_iter([])->unique()->to_array()
+            cs_iter([])->unique()->to_array()
         );
 
         $this->assertSame(
             [1, 2, 3],
-            tt_iter([1, 2, 3])->unique()->to_array()
+            cs_iter([1, 2, 3])->unique()->to_array()
         );
 
         $this->assertSame(
             [1, 2, 3],
-            tt_iter([1, 2, 3, 1, 2, 3])->unique()->to_array()
+            cs_iter([1, 2, 3, 1, 2, 3])->unique()->to_array()
         );
 
         $this->assertSame(
             [0 => 'a', 2 => 'b', 4 => 'c'],
-            tt_iter(['a', 'a', 'b', 'b', 'c', 'c'])->unique()->to_array()
+            cs_iter(['a', 'a', 'b', 'b', 'c', 'c'])->unique()->to_array()
         );
 
         $this->assertSame(
             [0 => 1, 2 => 3, 5 => 6],
-            tt_range(1, 9)
+            cs_range(1, 9)
                 ->unique(function ($value, $key) {
                     return intval($value / 3);
                 })
@@ -439,12 +404,12 @@ class IterableTest extends UnitTestCase {
 
         $this->assertSame(
             [0 => null, 1 => 1, 4 => 2, 6 => 3],
-            tt_iter([null, 1, 1, null, 2, null, 3, 2])->unique()->to_array()
+            cs_iter([null, 1, 1, null, 2, null, 3, 2])->unique()->to_array()
         );
     }
 
     public function test_key_of() {
-        $search = tt_iter(['a' => 1, 'b' => 2, 'c' => 3, 'd' => 4]);
+        $search = cs_iter(['a' => 1, 'b' => 2, 'c' => 3, 'd' => 4]);
 
         $this->assertSame(null, $search->key_of(0));
         $this->assertSame('x', $search->key_of(0, 'x'));
@@ -452,7 +417,7 @@ class IterableTest extends UnitTestCase {
     }
 
     public function test_index_of() {
-        $search = tt_iter([4, 8, 2, 4, 6, -3]);
+        $search = cs_iter([4, 8, 2, 4, 6, -3]);
 
         $this->assertSame(-1, $search->index_of(12));
         $this->assertSame(0, $search->index_of(4));
@@ -461,39 +426,39 @@ class IterableTest extends UnitTestCase {
 
     public function test_has_key() {
         $array = [1 => 'a', 2 => 'b', 3 => 'c'];
-        $this->assertTrue(tt_iter($array)->has_key(1));
-        $this->assertFalse(tt_iter($array)->has_key(4));
-        $this->assertFalse(tt_iter($array)->has_key('b'));
+        $this->assertTrue(cs_iter($array)->has_key(1));
+        $this->assertFalse(cs_iter($array)->has_key(4));
+        $this->assertFalse(cs_iter($array)->has_key('b'));
 
         $sample_iterator = $this->sample_iterator();
-        $this->assertTrue(tt_iter($sample_iterator)->has_key('d'));
-        $this->assertFalse(tt_iter($sample_iterator)->has_key('f'));
+        $this->assertTrue(cs_iter($sample_iterator)->has_key('d'));
+        $this->assertFalse(cs_iter($sample_iterator)->has_key('f'));
     }
 
     public function test_contains() {
         $array = [4, '5', true];
 
-        $this->assertTrue(tt_iter($array)->contains(4));
-        $this->assertTrue(tt_iter($array)->contains('5'));
-        $this->assertTrue(tt_iter($array)->contains(true));
+        $this->assertTrue(cs_iter($array)->contains(4));
+        $this->assertTrue(cs_iter($array)->contains('5'));
+        $this->assertTrue(cs_iter($array)->contains(true));
 
-        $this->assertFalse(tt_iter($array)->contains('4'));
-        $this->assertFalse(tt_iter($array)->contains(5));
-        $this->assertFalse(tt_iter($array)->contains(1));
+        $this->assertFalse(cs_iter($array)->contains('4'));
+        $this->assertFalse(cs_iter($array)->contains(5));
+        $this->assertFalse(cs_iter($array)->contains(1));
 
-        $set = tt_set([1, 3, 5, 7]);
+        $set = cs_set([1, 3, 5, 7]);
         $this->assertTrue($set->contains(3));
         $this->assertFalse($set->contains(4));
         $this->assertFalse($set->contains('5'));
 
-        $this->assertTrue(tt_iter($this->sample_iterator())->contains(2));
-        $this->assertFalse(tt_iter($this->sample_iterator())->contains(8));
+        $this->assertTrue(cs_iter($this->sample_iterator())->contains(2));
+        $this->assertFalse(cs_iter($this->sample_iterator())->contains(8));
     }
 
     public function test_pluck() {
         $this->assert_values_same(
             ['foo', 'bar', 'baz'],
-            tt_iter(
+            cs_iter(
                 [
                     ['x' => 1, 'y' => 'foo'],
                     ['x' => 2, 'y' => 'bar'],
@@ -504,7 +469,7 @@ class IterableTest extends UnitTestCase {
 
         $this->assert_values_same(
             [0, 1, null, 2],
-            tt_iter([
+            cs_iter([
                 new PluckTestSimpleObject(['key' => 0]),
                 new PluckTestSimpleObject(['key' => 1]),
                 new PluckTestSimpleObject(['key' => null]),
@@ -514,7 +479,7 @@ class IterableTest extends UnitTestCase {
 
         $this->assert_values_same(
             ['foo', 'bar', 'baz'],
-            tt_iter(
+            cs_iter(
                 [
                     new PluckTestSimpleObject(['x' => 1, 'a' => 'foo']),
                     new PluckTestSimpleObject(['x' => 2, 'a' => 'bar']),
@@ -525,7 +490,7 @@ class IterableTest extends UnitTestCase {
 
         $this->assert_values_same(
             ['foo', 'bar', 'baz'],
-            tt_iter(
+            cs_iter(
                 [
                     new PluckTestContainerObject(['x' => 1, 'z' => 'foo']),
                     new PluckTestContainerObject(['x' => 2, 'z' => 'bar']),
@@ -538,7 +503,7 @@ class IterableTest extends UnitTestCase {
         // value is null, plucking 'key' should not result in a call to `get('key')`.
         $this->assert_values_same(
             [null, null],
-            tt_iter(
+            cs_iter(
                 [
                     new PluckTestContainerObject(['key' => 1]),
                     new PluckTestContainerObject(['key' => 2]),
@@ -548,7 +513,7 @@ class IterableTest extends UnitTestCase {
 
         $this->assert_values_same(
             ['foo', 'bar', 'baz'],
-            tt_iter(
+            cs_iter(
                 [
                     new PluckableProperties(['x' => 1, 'y' => 'foo']),
                     new PluckableProperties(['x' => 2, 'y' => 'bar']),
@@ -560,14 +525,14 @@ class IterableTest extends UnitTestCase {
 
     public function test_keys_values() {
         $test = ['a' => 1, 'e' => -1, 'c' => 5, 'g' => 19];
-        $iterable = tt_iter($test);
+        $iterable = cs_iter($test);
 
         $this->assertEqual(array_keys($test), $iterable->keys()->to_array());
         $this->assertEqual(array_values($test), $iterable->values()->to_array());
     }
 
     public function test_chain() {
-        $chain = tt_iter([[4, 5, 6], [1, 2, 3], [7, 8]])->chain();
+        $chain = cs_iter([[4, 5, 6], [1, 2, 3], [7, 8]])->chain();
 
         // the for loop tests rewindability
         for ($i = 0; $i < 2; $i++) {
@@ -580,14 +545,14 @@ class IterableTest extends UnitTestCase {
         // test chain containing empty iterables
         $this->assertSame(
             [4, 5, 6, 7, 9],
-            tt_iter([[], [4, 5, 6], [], [], [7], [9], []])
+            cs_iter([[], [4, 5, 6], [], [], [7], [9], []])
                 ->chain()
                 ->to_array()
         );
 
         $this->assertSame(
             [],
-            tt_iter([[], []])->chain()->to_array()
+            cs_iter([[], []])->chain()->to_array()
         );
     }
 
@@ -596,12 +561,12 @@ class IterableTest extends UnitTestCase {
 
         $this->assertSame(
             array_flip($input),
-            tt_iter($input)->flip()->to_array()
+            cs_iter($input)->flip()->to_array()
         );
 
         $this->assertSame(
             ['a', 'b', 'c', 'd', 'e'],
-            tt_iter($this->sample_iterator())->flip()->to_array()
+            cs_iter($this->sample_iterator())->flip()->to_array()
         );
 
         $dupes = ['a' => 1, 'b' => 2, 'c' => 1, 'd' => 2, 'e' => 3];
@@ -613,17 +578,17 @@ class IterableTest extends UnitTestCase {
             [3, 'e']
         ];
         $seen = [];
-        foreach (tt_iter($dupes)->flip() as $key => $value) {
+        foreach (cs_iter($dupes)->flip() as $key => $value) {
             $seen[] = [$key, $value];
         }
         $this->assertEqual($expected, $seen);
 
         $this->assertEqual(
             [1 => 'c', 2 => 'd', 3 => 'e'],
-            tt_iter($dupes)->flip()->to_array()
+            cs_iter($dupes)->flip()->to_array()
         );
 
-        $values = tt_iter($dupes)->flip()->to_set()->to_array();
+        $values = cs_iter($dupes)->flip()->to_set()->to_array();
         sort($values);
         $this->assertEqual(
             ['a', 'b', 'c', 'd', 'e'],
@@ -632,31 +597,31 @@ class IterableTest extends UnitTestCase {
     }
 
     public function test_cycle() {
-        $repeat = tt_iter([1, 2, 3])->cycle();
+        $repeat = cs_iter([1, 2, 3])->cycle();
         $this->assertSame(
             [1, 2, 3, 1, 2, 3, 1, 2],
             $repeat->slice(0, 8)->to_array()
         );
 
-        $this->assertFalse(tt_iter([])->cycle()->getIterator()->valid());
+        $this->assertFalse(cs_iter([])->cycle()->getIterator()->valid());
     }
 
     public function test_sort() {
-        $this->assert_values_same([], tt_iter([])->sort());
-        $this->assert_values_same([1, 2, 3], tt_iter([1, 2, 3])->sort());
-        $this->assert_values_same([1, 2, 2, 3], tt_iter([2, 3, 2, 1])->sort());
+        $this->assert_values_same([], cs_iter([])->sort());
+        $this->assert_values_same([1, 2, 3], cs_iter([1, 2, 3])->sort());
+        $this->assert_values_same([1, 2, 2, 3], cs_iter([2, 3, 2, 1])->sort());
 
-        $string_length = tt_iter(['aaa', 'a', 'aa', 'aaaa'])->sort(function ($a, $b) {
+        $string_length = cs_iter(['aaa', 'a', 'aa', 'aaaa'])->sort(function ($a, $b) {
             return strlen($a) - strlen($b);
         });
         $this->assert_values_same(['a', 'aa', 'aaa', 'aaaa'], $string_length);
     }
 
     public function test_sort_by_properites() {
-        $null_test = tt_iter([])->sort_by_properties(['a' => 1, 'b' => -1]);
+        $null_test = cs_iter([])->sort_by_properties(['a' => 1, 'b' => -1]);
         $this->assert_values_same([], $null_test);
 
-        $forward_sort = tt_iter([
+        $forward_sort = cs_iter([
             ['a' => 2, 'b' => 3],
             ['a' => 1, 'b' => 2],
             ['a' => 3, 'b' => 1],
@@ -667,7 +632,7 @@ class IterableTest extends UnitTestCase {
             ['a' => 3, 'b' => 1],
         ], $forward_sort);
 
-        $reverse_sort = tt_iter([
+        $reverse_sort = cs_iter([
             ['a' => 2, 'b' => 3],
             ['a' => 1, 'b' => 2],
             ['a' => 3, 'b' => 1],
@@ -678,7 +643,7 @@ class IterableTest extends UnitTestCase {
             ['a' => 1, 'b' => 2],
         ], $reverse_sort);
 
-        $multi_field_sort = tt_iter([
+        $multi_field_sort = cs_iter([
             ['a' => 2, 'b' => 3],
             ['a' => 1, 'b' => 2],
             ['a' => 1, 'b' => 1],
@@ -689,7 +654,7 @@ class IterableTest extends UnitTestCase {
             ['a' => 2, 'b' => 3],
         ], $multi_field_sort);
 
-        $missing_values = tt_iter([
+        $missing_values = cs_iter([
             ['a' => 1, 'b' => 1],
             ['a' => 0, 'b' => 3],
             ['b' => 4],
@@ -702,15 +667,15 @@ class IterableTest extends UnitTestCase {
     }
 
     public function test_min() {
-        $this->assertSame(0, tt_iter($this->sample_iterator())->min());
-        $this->assertSame(2, tt_iter([2])->min());
+        $this->assertSame(0, cs_iter($this->sample_iterator())->min());
+        $this->assertSame(2, cs_iter([2])->min());
 
         $sample_structs = [
             ['x' => 1, 'y' => 2, 'z' => 1],
             ['x' => 3, 'y' => 1, 'z' => 2],
             ['x' => -1, 'y' => 5, 'z' => 1],
         ];
-        $iter = tt_iter($sample_structs);
+        $iter = cs_iter($sample_structs);
 
         $this->assertSame(
             $sample_structs[2],
@@ -726,7 +691,7 @@ class IterableTest extends UnitTestCase {
         );
 
         try {
-            tt_iter([])->min();
+            cs_iter([])->min();
         } catch (Crankshaft\EmptyIterableError $e) {
             $this->pass();
             return;
@@ -736,15 +701,15 @@ class IterableTest extends UnitTestCase {
     }
 
     public function test_max() {
-        $this->assertSame(4, tt_iter($this->sample_iterator())->max());
-        $this->assertSame(2, tt_iter([2])->max());
+        $this->assertSame(4, cs_iter($this->sample_iterator())->max());
+        $this->assertSame(2, cs_iter([2])->max());
 
         $sample_structs = [
             ['x' => 1, 'y' => 2, 'z' => 2],
             ['x' => 3, 'y' => 1, 'z' => 1],
             ['x' => -1, 'y' => 5, 'z' => 2],
         ];
-        $iter = tt_iter($sample_structs);
+        $iter = cs_iter($sample_structs);
 
         $this->assertSame(
             $sample_structs[1],
@@ -760,7 +725,7 @@ class IterableTest extends UnitTestCase {
         );
 
         try {
-            tt_iter([])->max();
+            cs_iter([])->max();
         } catch (Crankshaft\EmptyIterableError $e) {
             $this->pass();
             return;
@@ -770,41 +735,41 @@ class IterableTest extends UnitTestCase {
     }
 
     public function test_sum() {
-        $this->assertSame(0, tt_iter([])->sum());
-        $this->assertSame(0.0, tt_iter([])->sum(0.0));
-        $this->assertSame(6, tt_iter([3, 1, 2])->sum());
-        $this->assertSame(6.0, tt_iter([3, 1, 2])->sum(0.0));
+        $this->assertSame(0, cs_iter([])->sum());
+        $this->assertSame(0.0, cs_iter([])->sum(0.0));
+        $this->assertSame(6, cs_iter([3, 1, 2])->sum());
+        $this->assertSame(6.0, cs_iter([3, 1, 2])->sum(0.0));
     }
 
     public function test_join() {
         $letters = ['a', 'b', 'c', 'd'];
-        $this->assertSame('a, b, c, d', tt_iter($letters)->join(', '));
-        $this->assertSame('abcd', tt_iter($letters)->join(''));
-        $this->assertSame('1234', tt_range(1, 5)->join(''));
+        $this->assertSame('a, b, c, d', cs_iter($letters)->join(', '));
+        $this->assertSame('abcd', cs_iter($letters)->join(''));
+        $this->assertSame('1234', cs_range(1, 5)->join(''));
     }
 
     public function test_count() {
-        $this->assertSame(6, tt_iter([1, 2, 3, 4, 5, 6])->count());
-        $this->assertSame(5, tt_iter($this->sample_iterator())->count());
+        $this->assertSame(6, cs_iter([1, 2, 3, 4, 5, 6])->count());
+        $this->assertSame(5, cs_iter($this->sample_iterator())->count());
     }
 
     public function test_reverse() {
         $input = [0, 1, 2, 3, 4, 5];
 
-        $this->assertSame(count($input), count(tt_iter($input)->reverse()));
+        $this->assertSame(count($input), count(cs_iter($input)->reverse()));
         $this->assert_values_same(
             [5, 4, 3, 2, 1, 0],
-            tt_iter($input)->reverse()
+            cs_iter($input)->reverse()
         );
     }
 
     public function test_suffle() {
-        $this->assert_values_same([], tt_iter([])->shuffle());
-        $this->assert_values_same([9], tt_iter([9])->shuffle());
+        $this->assert_values_same([], cs_iter([])->shuffle());
+        $this->assert_values_same([9], cs_iter([9])->shuffle());
 
         // Let grab a list of 12 elements, the number of
         // its unique permutations is d = 12! ≈ 5*10^8.
-        $list = tt_iter([1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]);
+        $list = cs_iter([1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12]);
 
         // If we do n = 100 random draws from a set of all
         // permutations, the probability of a collision
@@ -812,7 +777,7 @@ class IterableTest extends UnitTestCase {
         //
         // [1]: Search for the generalized birthday problem.
         $n = 100;
-        $draws = tt_set();
+        $draws = cs_set();
         for ($i = 0; $i < $n; ++$i) {
             $draw = $list->shuffle()->to_array();
             $draws->add(implode(',', $draw));
@@ -833,260 +798,3 @@ class IterableTest extends UnitTestCase {
     }
 }
 
-class SampleIterator implements \Iterator {
-    private $key;
-    private $count;
-
-    public function rewind() {
-        $this->key = 'a';
-        $this->count = 0;
-    }
-
-    public function current() {
-        return $this->count;
-    }
-
-    public function key() {
-        return $this->key;
-    }
-
-    public function next() {
-        $this->key++;
-        $this->count++;
-    }
-
-    public function valid() {
-        return $this->count < 5;
-    }
-}
-
-class SetTest extends UnitTestCase {
-    private function get_sorted_values_from_set($set) {
-        $values = [];
-        foreach ($set as $value) {
-            $values[] = $value;
-        }
-        sort($values);
-        return $values;
-    }
-
-    function testEquals() {
-        $this->assertTrue(tt_set(range(0, 100))->equals(tt_set(range(0, 100))));
-        $this->assertTrue(tt_set()->equals(tt_set()));
-        $this->assertFalse(tt_set([1])->equals(tt_set()));
-        $this->assertFalse(tt_set(range(0, 100))->equals(tt_set(range(0, 101))));
-    }
-
-    function testIsSubset() {
-        $this->assertTrue(tt_set(range(0, 100))->is_subset(tt_set(range(0, 100))));
-        $this->assertTrue(tt_set(range(0, 10))->is_subset(tt_set(range(0, 100))));
-        $this->assertTrue(tt_set([])->is_subset(tt_set(range(0, 100))));
-
-        $this->assertFalse(tt_set(range(0, 10))->is_subset(tt_set(range(1, 100))));
-        $this->assertFalse(tt_set(range(0, 10))->is_subset(tt_set([])));
-        $this->assertFalse(tt_set(range(0, 10))->is_subset(tt_set(range(0, 9))));
-    }
-
-    function testIsSuperset() {
-        $this->assertTrue(tt_set(range(0, 100))->is_superset(tt_set(range(0, 100))));
-        $this->assertTrue(tt_set(range(0, 10))->is_superset(tt_set([])));
-        $this->assertTrue(tt_set(range(0, 10))->is_superset(tt_set(range(0, 9))));
-
-        $this->assertFalse(tt_set(range(0, 10))->is_superset(tt_set(range(0, 100))));
-        $this->assertFalse(tt_set(range(0, 10))->is_superset(tt_set(range(1, 100))));
-        $this->assertFalse(tt_set([])->is_superset(tt_set(range(0, 100))));
-    }
-
-    function testIntersectionAndUnion() {
-        $test_cases = [
-            [
-                'a' => range(0, 3),
-                'b' => range(0, 10),
-                'union' => range(0, 10),
-                'intersection' => range(0, 3),
-            ],
-            [
-                'a' => [],
-                'b' => range(0, 10),
-                'union' => range(0, 10),
-                'intersection' => [],
-            ],
-            [
-                'a' => range(0, 10),
-                'b' => range(0, 10),
-                'union' => range(0, 10),
-                'intersection' => range(0, 10),
-            ],
-            [
-                'a' => range(11, 20),
-                'b' => range(0, 10),
-                'union' => range(0, 20),
-                'intersection' => [],
-            ],
-        ];
-
-        foreach ($test_cases as $test_case) {
-            $this->assertSame(
-                $this->get_sorted_values_from_set(
-                    tt_set($test_case['a'])->intersection(tt_set($test_case['b']))),
-                $test_case['intersection']
-            );
-            $this->assertSame(
-                $this->get_sorted_values_from_set(
-                    tt_set($test_case['a'])->union(tt_set($test_case['b']))),
-                $test_case['union']
-            );
-        }
-    }
-
-    function testDifference() {
-        $test_cases = [
-            [
-                'a' => range(0, 10),
-                'b' => range(0, 10),
-                'difference' => [],
-            ],
-            [
-                'a' => range(0, 10),
-                'b' => range(0, 9),
-                'difference' => [10],
-            ],
-            [
-                'a' => range(0, 10),
-                'b' => range(5, 10),
-                'difference' => range(0, 4),
-            ],
-            [
-                'a' => range(0, 10),
-                'b' => range(11, 20),
-                'difference' => range(0, 10),
-            ],
-        ];
-
-        foreach ($test_cases as $test_case) {
-            $this->assertSame(
-                $this->get_sorted_values_from_set(
-                    tt_set($test_case['a'])->difference(tt_set($test_case['b']))),
-                $test_case['difference']
-            );
-        }
-    }
-
-    function testAddAndUpdate() {
-        $set = tt_set();
-        $set->update(range(0, 3));
-        $this->assertSame(count($set), 4);
-
-        $set->update(range(0, 3));
-        $this->assertSame(count($set), 4);
-
-        $set->update(range(0, 9));
-        $this->assertSame(count($set), 10);
-
-        $set->add(10);
-        $this->assertSame(count($set), 11);
-
-        $set->add(10);
-        $this->assertSame(count($set), 11);
-
-        $this->assertSame($this->get_sorted_values_from_set($set), range(0, 10));
-    }
-
-    function testRemove() {
-        $set = tt_set();
-        $set->update(range(0, 3));
-        $this->assertSame(count($set), 4);
-
-        // Remove an element not in the set, count remains the same
-        $set->remove(100);
-        $this->assertSame(count($set), 4);
-
-        // Remove an element in the set, count should update
-        $set->remove(0);
-        $this->assertSame(count($set), 3);
-
-        $this->assertSame($this->get_sorted_values_from_set($set), range(1, 3));
-    }
-
-    function testContains() {
-        $set = tt_set();
-        $this->assertFalse($set->contains(0));
-
-        $set->add(0);
-        $this->assertTrue($set->contains(0));
-
-        $set->remove(0);
-        $this->assertFalse($set->contains(0));
-
-        $set->add(1);
-        $this->assertFalse($set->contains('1'));
-    }
-
-    function testTypeStrictness() {
-        $set = tt_set();
-
-        $set->add(1);
-        $this->assertTrue($set->contains(1), 'set should contain `1`');
-        $this->assertFalse($set->contains('1'), 'set should not contain `"1"`');
-
-        $set->add('1');
-        $this->assertTrue($set->contains('1'), 'set should contain 1');
-        $this->assertTrue($set->contains(1), 'set should contain `"1"`');
-        $this->assertEqual(2, count($set), 'wrong length: %s');
-
-        $set->add(true);
-        $this->assertTrue($set->contains(true));
-        $this->assertEqual(3, count($set), 'wrong length: %s');
-
-        $seen_int = false;
-        $seen_string = false;
-        $seen_boolean = false;
-
-        foreach ($set as $value) {
-            if ($value === 1) {
-                $seen_int = true;
-            } else if ($value === '1') {
-                $seen_string = true;
-            } else if ($value === true) {
-                $seen_boolean = true;
-            } else {
-                $this->fail('unknown value: ' . tt_inspect($value));
-            }
-        }
-
-        $this->assertTrue($seen_int, 'should have gotten `1` back');
-        $this->assertTrue($seen_string, 'should have gotten `"1"` back');
-        $this->assertTrue($seen_boolean, 'should have gotten `TRUE` back');
-    }
-
-    function testErrorOnNonScalarItems() {
-        $set = tt_set();
-
-        try {
-            $set->add([]);
-            $this->fail('Should have thrown InvalidArgumentException');
-        } catch (InvalidArgumentException $e) {
-            $this->pass('Properly threw InvalidArgumentException');
-        }
-
-        try {
-            $set->add(new stdclass());
-            $this->fail('Should have thrown InvalidArgumentException');
-        } catch (InvalidArgumentException $e) {
-            $this->pass('Properly threw InvalidArgumentException');
-        }
-    }
-
-    function testNullSupport() {
-        $set = tt_set();
-        $this->assertFalse($set->contains(null));
-
-        $set->add(null);
-        $this->assertTrue($set->contains(null));
-        $this->assertFalse($set->contains(false));
-        $this->assertFalse($set->contains(0));
-
-        $set->remove(null);
-        $this->assertFalse($set->contains(null));
-    }
-}

@@ -1,57 +1,15 @@
 <?php
 
-namespace Crankshaft;
-
-class Error extends \Exception {}
-
-class NotTraversableError extends Error {}
-
-class EmptyIterableError extends Error {}
-
-class CannotRewindError extends Error {}
-
-class UnpluckableError extends Error {}
-
-/**
- * Public: A standard way to represent a key/value pair.
- */
-class KeyValuePair {
-    public $key;
-    public $value;
-
-    public function __construct($key, $value) {
-        $this->key = $key;
-        $this->value = $value;
-    }
-}
-
-/**
- * Public: An interface for classes that allow access to properties through a `get` method. Objects
- * implementing this interface will be treated specially by `Iterable->pluck()` and
- * `Iterable->select()`.
- */
-interface PropertyContainer {
-    /**
-     * Public: Get this object's value for the given property.
-     *
-     * If this object does not possibly contain a property with the given name, it may throw an
-     * exception.
-     *
-     * $property_name - The string name of the property to access.
-     *
-     * Returns the property's value.
-     */
-    public function get($property_name);
-}
+namespace Thumbtack\Crankshaft;
 
 /**
  * Public: Provides many useful methods for dealing with collections. Custom collection classes
  * may inherit from Iterable directly, and any standard PHP array or Traversable object can be
- * made into an Iterable by passing it to `tt_iter()`.
+ * made into an Iterable by passing it to `Crankshaft::Iter()`.
  *
  * See also
  *
- *   tt_iter() - Turn any array or Traversable object into an Iterable.
+ *   Crankshaft::Iter() - Turn any array or Traversable object into an Iterable.
  */
 abstract class Iterable implements \IteratorAggregate {
     /**
@@ -62,7 +20,7 @@ abstract class Iterable implements \IteratorAggregate {
      *
      * Examples
      *
-     *   tt_iter(['a' => 1, 'b' => 2, 'c' => 4])
+     *   Crankshaft::Iter(['a' => 1, 'b' => 2, 'c' => 4])
      *       ->each(function($value, $key) {
      *           echo "$key: $value\n";
      *       });
@@ -74,7 +32,7 @@ abstract class Iterable implements \IteratorAggregate {
      * Returns nothing.
      */
     public function each($each_fn) {
-        tt_assert_callable($each_fn);
+        Crankshaft::AssertCallable($each_fn);
 
         foreach ($this as $key => $value) {
             call_user_func($each_fn, $value, $key);
@@ -91,12 +49,12 @@ abstract class Iterable implements \IteratorAggregate {
      *
      * Examples
      *
-     *   tt_iter([1, 2, 3, 4, 5, 6])
+     *   Crankshaft::Iter([1, 2, 3, 4, 5, 6])
      *       ->map(function($n) { return $n * $n; })
      *       ->to_array()
      *   // => [1, 4, 9, 16, 25, 36]
      *
-     *   tt_iter(['a' => 'hello', 'b' => 'goodbye'])
+     *   Crankshaft::Iter(['a' => 'hello', 'b' => 'goodbye'])
      *      ->map(function($s) { return strtoupper($s); })
      *       ->to_array()
      *   // => ['a' => 'HELLO', 'b' => 'GOODBYE']
@@ -121,7 +79,7 @@ abstract class Iterable implements \IteratorAggregate {
      *
      * Examples
      *
-     *   tt_iter(['a' => 1, 'b' => 2, 'c' => 3])
+     *   Crankshaft::Iter(['a' => 1, 'b' => 2, 'c' => 3])
      *       ->map_keys(function($key) { return strtoupper($key); })
      *       ->to_array()
      *   // => ['A' => 1, 'B' => 2, 'C' => 3]
@@ -147,10 +105,10 @@ abstract class Iterable implements \IteratorAggregate {
      *
      * Examples
      *
-     *   tt_iter([2, 7, 5])->reduce(function($sum, $value) { return $sum + $value })
+     *   Crankshaft::Iter([2, 7, 5])->reduce(function($sum, $value) { return $sum + $value })
      *   // => 14
      *
-     *   tt_iter([], 0)->reduce(function($sum, $value) { return $sum + $value })
+     *   Crankshaft::Iter([], 0)->reduce(function($sum, $value) { return $sum + $value })
      *   // => 0
      *
      * Returns the final value of `$memo` after each element has been stepped through.
@@ -158,7 +116,7 @@ abstract class Iterable implements \IteratorAggregate {
      *   `$memo` is provided.
      */
     public function reduce($reduce_fn, $memo=null) {
-        tt_assert_callable($reduce_fn);
+        Crankshaft::AssertCallable($reduce_fn);
 
         // Do this instead of a NULL check so that NULL can be explicitly passed as the memo value.
         $take_element_as_memo = func_num_args() < 2;
@@ -192,12 +150,12 @@ abstract class Iterable implements \IteratorAggregate {
      *
      * Examples
      *
-     *   tt_iter([1, 4, 2, 5, 6, 3])
+     *   Crankshaft::Iter([1, 4, 2, 5, 6, 3])
      *       ->filter(function($num) { return $num % 2 == 0; })
      *       ->to_array()
      *   // => [1 => 4, 2 => 2, 4 => 6]
      *
-     *   tt_iter(['hi', false, 0, 1, null])
+     *   Crankshaft::Iter(['hi', false, 0, 1, null])
      *       ->filter()
      *       ->to_array()
      *   // => [0 => 'hi', 3 => 1]
@@ -210,7 +168,7 @@ abstract class Iterable implements \IteratorAggregate {
      */
     public function filter($filter_fn=null) {
         if ($filter_fn === null) {
-            $filter_fn = 'tt_to_bool';
+            $filter_fn = 'Thumbtack\Crankshaft\Crankshaft::ToBool';
         }
 
         return new IteratorIterable(new FilteringIterator($this->getIterator(), $filter_fn));
@@ -226,12 +184,12 @@ abstract class Iterable implements \IteratorAggregate {
      *
      * Examples
      *
-     *   tt_iter([1, 4, 2, 5, 6, 3])
+     *   Crankshaft::Iter([1, 4, 2, 5, 6, 3])
      *       ->reject(function($num) { return $num % 2 == 0; })
      *       ->to_array()
      *   // => [0 => 1, 3 => 5, 5 => 3]
      *
-     *   tt_iter(['hi', false, 0, 1, null])
+     *   Crankshaft::Iter(['hi', false, 0, 1, null])
      *       ->reject()
      *       ->to_array()
      *   // => [1 => false, 2 => 0, 4 => null]
@@ -240,7 +198,7 @@ abstract class Iterable implements \IteratorAggregate {
      */
     public function reject($filter_fn=null) {
         if ($filter_fn === null) {
-            $filter_fn = 'tt_to_bool';
+            $filter_fn = 'Thumbtack\Crankshaft\Crankshaft::ToBool';
         }
 
         return $this->filter(function($value, $key) use ($filter_fn) {
@@ -259,7 +217,7 @@ abstract class Iterable implements \IteratorAggregate {
      *
      * Examples
      *
-     *   tt_iter([['n' => 1, 'x' => 1], ['n' => 2, 'x' => 'b'], ['n' => 3, 'x' => 'c']])
+     *   Crankshaft::Iter([['n' => 1, 'x' => 1], ['n' => 2, 'x' => 'b'], ['n' => 3, 'x' => 'c']])
      *       ->select(['n' => 2])
      *       ->to_array()
      *   // => [1 => ['n' => 2, 'x' => 'b']]
@@ -290,19 +248,19 @@ abstract class Iterable implements \IteratorAggregate {
      *
      * Examples
      *
-     *   tt_iter([0, 1, 2, 3, 4, 5])->slice(0, 3)->to_array()
+     *   Crankshaft::Iter([0, 1, 2, 3, 4, 5])->slice(0, 3)->to_array()
      *   // => [0, 1, 2]
      *
-     *   tt_iter([0, 1, 2, 3, 4, 5])->slice(3)->to_array()
+     *   Crankshaft::Iter([0, 1, 2, 3, 4, 5])->slice(3)->to_array()
      *   // => [3 => 3, 4 => 4, 5 => 5]
      *
-     *   tt_iter([0, 1, 2, 3, 4, 5])->slice(-2)->to_array()
+     *   Crankshaft::Iter([0, 1, 2, 3, 4, 5])->slice(-2)->to_array()
      *   // => [4 => 4, 5 => 5]
      *
-     *   tt_iter([0, 1, 2, 3, 4, 5])->slice(1, -2)->to_array()
+     *   Crankshaft::Iter([0, 1, 2, 3, 4, 5])->slice(1, -2)->to_array()
      *   // => [1 => 1, 2 => 2, 3 => 3, 4 => 4]
      *
-     *   tt_iter([0, 1, 2, 3, 4, 5])->slice(-3, -2)->to_array()
+     *   Crankshaft::Iter([0, 1, 2, 3, 4, 5])->slice(-3, -2)->to_array()
      *   // => [3 => 3, 4 => 4]
      *
      * Returns an Iterable that will yield each value in the subsequence.
@@ -350,10 +308,10 @@ abstract class Iterable implements \IteratorAggregate {
      *
      * Examples
      *
-     *   tt_iter([2, 7, 5])->first()
+     *   Crankshaft::Iter([2, 7, 5])->first()
      *   // => 2
      *
-     *   tt_iter([])->first()
+     *   Crankshaft::Iter([])->first()
      *   // => null
      *
      * Returns the value of the first element from this iterable or null if it's empty.
@@ -371,10 +329,10 @@ abstract class Iterable implements \IteratorAggregate {
      *
      * Examples
      *
-     *   tt_iter([2, 7, 5])->last()
+     *   Crankshaft::Iter([2, 7, 5])->last()
      *   // => 5
      *
-     *   tt_iter([])->last()
+     *   Crankshaft::Iter([])->last()
      *   // => null
      *
      * Returns the value of the last element from this iterable or null if it's empty.
@@ -391,12 +349,12 @@ abstract class Iterable implements \IteratorAggregate {
      *
      * Examples
      *
-     *   tt_iter([[1, 2, 3], [4, 5], [6, 7]])->chain()->to_array()
+     *   Crankshaft::Iter([[1, 2, 3], [4, 5], [6, 7]])->chain()->to_array()
      *   # => [1, 2, 3, 4, 5, 6, 7]
      *
      * See also
      *
-     *   tt_chain() - accepts the traversables to chain as arguments
+     *   Crankshaft::Chain() - accepts the traversables to chain as arguments
      *
      * Returns an Iterable.
      */
@@ -415,25 +373,25 @@ abstract class Iterable implements \IteratorAggregate {
      *
      * Examples
      *
-     *   tt_iter([1, 2, 3, 4])->any(function($v) { return $v == 3; })
+     *   Crankshaft::Iter([1, 2, 3, 4])->any(function($v) { return $v == 3; })
      *   // => true
      *
-     *   tt_iter([1, 3, 5, 7, 9])->any(function($v) { return $v % 2 == 0; })
+     *   Crankshaft::Iter([1, 3, 5, 7, 9])->any(function($v) { return $v % 2 == 0; })
      *   // => false
      *
-     *   tt_iter([false, false, true, false])->any()
+     *   Crankshaft::Iter([false, false, true, false])->any()
      *   // => true
      *
-     *   tt_iter([])->any()
+     *   Crankshaft::Iter([])->any()
      *   // => false
      *
      * Returns true if any element in this iterable passed the truth test; false if none did.
      */
     public function any($test_fn=null) {
         if ($test_fn === null) {
-            $test_fn = 'tt_to_bool';
+            $test_fn = 'Thumbtack\Crankshaft\Crankshaft::ToBool';
         } else {
-            tt_assert_callable($test_fn);
+            Crankshaft::AssertCallable($test_fn);
         }
 
         foreach ($this as $key => $value) {
@@ -456,25 +414,25 @@ abstract class Iterable implements \IteratorAggregate {
      *
      * Examples
      *
-     *   tt_iter([1, 2, 3, 4])->all(function($v) { return $v > 0; })
+     *   Crankshaft::Iter([1, 2, 3, 4])->all(function($v) { return $v > 0; })
      *   // => true
      *
-     *   tt_iter([2, 4, 6, 7, 8, 10])->all(function($v) { return $v % 2 == 0; })
+     *   Crankshaft::Iter([2, 4, 6, 7, 8, 10])->all(function($v) { return $v % 2 == 0; })
      *   // => false
      *
-     *   tt_iter([1, true, 'hi'])->all()
+     *   Crankshaft::Iter([1, true, 'hi'])->all()
      *   // => true
      *
-     *   tt_iter([])->all()
+     *   Crankshaft::Iter([])->all()
      *   // => true
      *
      * Returns true if all elements in this iterable passed the truth test; false if any did not.
      */
     public function all($test_fn=null) {
         if ($test_fn === null) {
-            $test_fn = 'tt_to_bool';
+            $test_fn = 'Thumbtack\Crankshaft\Crankshaft::ToBool';
         } else {
-            tt_assert_callable($test_fn);
+            Crankshaft::AssertCallable($test_fn);
         }
 
         foreach ($this as $key => $value) {
@@ -495,13 +453,13 @@ abstract class Iterable implements \IteratorAggregate {
      *
      * Examples
      *
-     *   tt_iter([1, 2, 3, 4, 5, 6])->find(function($num) { return $num > 3; })
+     *   Crankshaft::Iter([1, 2, 3, 4, 5, 6])->find(function($num) { return $num > 3; })
      *   // => 4
      *
      * Returns the matching element, or `$default` if no elements passed the truth test.
      */
     public function find($test_fn, $default=null) {
-        tt_assert_callable($test_fn);
+        Crankshaft::AssertCallable($test_fn);
 
         foreach ($this as $key => $value) {
             if (call_user_func($test_fn, $value, $key)) {
@@ -522,16 +480,16 @@ abstract class Iterable implements \IteratorAggregate {
      *
      * Examples
      *
-     *      tt_iter([1, 2, 3, 4, 5, 6])->partition(function($num) { return $num % 3; })
+     *      Crankshaft::Iter([1, 2, 3, 4, 5, 6])->partition(function($num) { return $num % 3; })
      *      // => [1 => [1, 4], 2 => [2, 5], 0 => [3, 6]]
      *
-     *      tt_iter([1, null, 2, 3, null])->partition('tt_identity')
+     *      Crankshaft::Iter([1, null, 2, 3, null])->partition('tt_identity')
      *      // => [1 => [1], 2 => [2], 3 => [3]],
      *
-     *      tt_iter([1, null, 2, 3, null])->partition('tt_identity', true)
+     *      Crankshaft::Iter([1, null, 2, 3, null])->partition('tt_identity', true)
      *      // => [[1 => [1], 2 => [2], 3 => [3]], [null, null]],
      *
-     *      tt_iter([1, 2, 3])->partition('tt_identity', true)
+     *      Crankshaft::Iter([1, 2, 3])->partition('tt_identity', true)
      *      // => [[1 => [1], 2 => [2], 3 => [3]], []]
      *
      * Returns an array of the partitions and the null group if including ungrouped values;
@@ -555,8 +513,8 @@ abstract class Iterable implements \IteratorAggregate {
         }
 
         return $include_ungrouped
-            ? [tt_iter($partitions), tt_iter($null_group)]
-            : tt_iter($partitions);
+            ? [Crankshaft::Iter($partitions), Crankshaft::Iter($null_group)]
+            : Crankshaft::Iter($partitions);
     }
 
     /**
@@ -568,7 +526,7 @@ abstract class Iterable implements \IteratorAggregate {
      *
      * Examples
      *
-     *     tt_iter([
+     *     Crankshaft::Iter([
      *         ['a' => 1, 'b' => 'qqx'],
      *         ['a' => 1, 'b' => 'bar'],
      *         ['a' => 2, 'b' => 'zzy']
@@ -599,24 +557,25 @@ abstract class Iterable implements \IteratorAggregate {
      * Elements that are not filtered out are returned with their original key.
      *
      * $grouping_fn - A function `($value, $key) -> scalar` that will be called on each element
-     *                to get the key for determining whether it is unique. (default: tt_identity)
+     *                to get the key for determining whether it is unique.
+     *                (default: Crankshaft::Identity)
      *
      * Examples
      *
-     *      tt_iter([1, 2, 3, 1, 2, 3, 1, 2, 3])->unique()
+     *      Crankshaft::Iter([1, 2, 3, 1, 2, 3, 1, 2, 3])->unique()
      *      // => [1, 2, 3]
      *
-     *      tt_iter(['a', 'a', 'b', 'b', 'c', 'c'])->unique()
+     *      Crankshaft::Iter(['a', 'a', 'b', 'b', 'c', 'c'])->unique()
      *      // => [0 => 'a', 2 => 'b', 4 => 'c']
      *
-     *      tt_range(1, 9)->unique(function ($value, $key) { return intval($value / 3); })
+     *      Crankshaft::Range(1, 9)->unique(function ($value, $key) { return intval($value / 3); })
      *      // => [0 => 1, 2 => 3, 5 => 6]
      *
      * Returns an Iterable of unique elements.
      */
     public function unique(callable $grouping_fn=null) {
         if ($grouping_fn === null) {
-            $grouping_fn = 'tt_identity';
+            $grouping_fn = 'Thumbtack\Crankshaft\Crankshaft::Identity';
         }
 
         return new IteratorIterable(
@@ -632,16 +591,16 @@ abstract class Iterable implements \IteratorAggregate {
      *
      * Examples
      *
-     *   tt_iter(['a' => 1, 'b' => 2, 'c' => 3, 'd' => 4])->key_of(3)
+     *   Crankshaft::Iter(['a' => 1, 'b' => 2, 'c' => 3, 'd' => 4])->key_of(3)
      *   // => 'c'
      *
-     *   tt_iter(['a' => 1, 'b' => 2, 'c' => 3, 'd' => 4])->key_of(5)
+     *   Crankshaft::Iter(['a' => 1, 'b' => 2, 'c' => 3, 'd' => 4])->key_of(5)
      *   // => null
      *
-     *   tt_iter(['a' => 1, 'b' => 2, 'c' => 3, 'd' => 4])->key_of('3')
+     *   Crankshaft::Iter(['a' => 1, 'b' => 2, 'c' => 3, 'd' => 4])->key_of('3')
      *   // => null
      *
-     *   tt_iter(['a' => 1, 'b' => 2, 'c' => 3, 'd' => 4])->key_of(5, 'x')
+     *   Crankshaft::Iter(['a' => 1, 'b' => 2, 'c' => 3, 'd' => 4])->key_of(5, 'x')
      *   // => 'x'
      *
      * Returns the matching key, or `$default` if `$target` was not found.
@@ -664,13 +623,13 @@ abstract class Iterable implements \IteratorAggregate {
      *
      * Examples
      *
-     *   tt_iter(['a', 'b', 'c', 'd', 'e', 'f'])->index_of('d')
+     *   Crankshaft::Iter(['a', 'b', 'c', 'd', 'e', 'f'])->index_of('d')
      *   // => 3
      *
-     *   tt_iter(['a', 'b', 'c', 'd', 'e', 'f'])->index_of('q')
+     *   Crankshaft::Iter(['a', 'b', 'c', 'd', 'e', 'f'])->index_of('q')
      *   // => -1
      *
-     *   tt_iter([1, 2, 3, 4, 5])->index_of('3')
+     *   Crankshaft::Iter([1, 2, 3, 4, 5])->index_of('3')
      *   // => -1
      *
      * Returns the matching index, or -1 if `$target` was not found.
@@ -687,24 +646,24 @@ abstract class Iterable implements \IteratorAggregate {
      *
      * Examples
      *
-     *   tt_iter(['a' => 97, 'b' => 98, 'c' => 99])->has_key('b')
+     *   Crankshaft::Iter(['a' => 97, 'b' => 98, 'c' => 99])->has_key('b')
      *   // => true
      *
-     *   tt_iter(['a' => 97, 'b' => 98, 'c' => 99])->has_key('d')
+     *   Crankshaft::Iter(['a' => 97, 'b' => 98, 'c' => 99])->has_key('d')
      *   // => false
      *
-     *   tt_iter(['a' => 97, 'b' => 98, 'c' => 99])->has_key(98)
+     *   Crankshaft::Iter(['a' => 97, 'b' => 98, 'c' => 99])->has_key(98)
      *   // => false
      *
-     *   tt_iter(['x', 'y', 'z'])-has_key(2)
+     *   Crankshaft::Iter(['x', 'y', 'z'])-has_key(2)
      *   // => true
      *
-     *   tt_iter(['x', 'y', 'z'])-has_key('2')
+     *   Crankshaft::Iter(['x', 'y', 'z'])-has_key('2')
      *   // => true
      *
      * See also
      *
-     *   tt_has_key() - If the only Iterable call you want to make is this one, you can use
+     *   Crankshaft::HasKey() - If the only Iterable call you want to make is this one, you can use
      *                  the more convenient global form.
      *
      * Returns true if the key was found; false if it was not.
@@ -728,10 +687,10 @@ abstract class Iterable implements \IteratorAggregate {
      *
      * Examples
      *
-     *   tt_iter([97, 98, 99])->contains(98)
+     *   Crankshaft::Iter([97, 98, 99])->contains(98)
      *   // => true
      *
-     *   tt_iter([97, 98, 99])->contains('98')
+     *   Crankshaft::Iter([97, 98, 99])->contains('98')
      *   // => false
      *
      * Returns true if the value was found; false if it was not.
@@ -752,7 +711,7 @@ abstract class Iterable implements \IteratorAggregate {
      *
      * Examples
      *
-     *   tt_iter([
+     *   Crankshaft::Iter([
      *       ['name' => 'Alan', age => 39],
      *       ['name' => 'Sue', age => 26],
      *       ['name' => 'Ehud', age => 63],
@@ -778,7 +737,7 @@ abstract class Iterable implements \IteratorAggregate {
      *
      * Examples
      *
-     *   tt_iter(['a', 'b', 'c', 'd', 'e'])->reverse()->to_array()
+     *   Crankshaft::Iter(['a', 'b', 'c', 'd', 'e'])->reverse()->to_array()
      *   // => [4 => 'e', 3 => 'd, 2 => 'c', 1 => 'b', 0 => 'a']
      *
      * Returns an Iterable.
@@ -797,7 +756,7 @@ abstract class Iterable implements \IteratorAggregate {
             $reversed[$keys->pop()] = $values->pop();
         }
 
-        return tt_iter($reversed);
+        return Crankshaft::Iter($reversed);
     }
 
     /**
@@ -811,10 +770,10 @@ abstract class Iterable implements \IteratorAggregate {
      *
      * Examples
      *
-     *   tt_iter([1, 5, 3, 9, 4])->max()
+     *   Crankshaft::Iter([1, 5, 3, 9, 4])->max()
      *   // => 9
      *
-     *   tt_iter([1, 5, 3, 9, 4])->max(function($num) { return -$num; })
+     *   Crankshaft::Iter([1, 5, 3, 9, 4])->max(function($num) { return -$num; })
      *   // => 1
      *
      * Returns the maximal value from this iterable.
@@ -840,10 +799,10 @@ abstract class Iterable implements \IteratorAggregate {
      *
      * Examples
      *
-     *   tt_iter([5, 2, 7, 4, 9])->min()
+     *   Crankshaft::Iter([5, 2, 7, 4, 9])->min()
      *   // => 2
      *
-     *   tt_iter([5, 2, 7, 4, 9])->min(function($num) { return -$num; })
+     *   Crankshaft::Iter([5, 2, 7, 4, 9])->min(function($num) { return -$num; })
      *   // => 9
      *
      * Returns the minimal value from this iterable.
@@ -865,10 +824,10 @@ abstract class Iterable implements \IteratorAggregate {
      *
      * Examples
      *
-     *   tt_iter([3, 1, 2])->sum()
+     *   Crankshaft::Iter([3, 1, 2])->sum()
      *   // => 6
      *
-     *   tt_iter([3, 1, 2])->sum(0.0)
+     *   Crankshaft::Iter([3, 1, 2])->sum(0.0)
      *   // => 6.0
      *
      * Returns the sum if this iterable was not empty, or `$zero` if it was empty.
@@ -890,10 +849,10 @@ abstract class Iterable implements \IteratorAggregate {
      *
      * Examples
      *
-     *   tt_iter(['foo', 'bar', 'baz'])->join(', ')
+     *   Crankshaft::Iter(['foo', 'bar', 'baz'])->join(', ')
      *   // => 'foo, bar, baz'
      *
-     *   tt_iter([1, 2, 3])->join(' + ')
+     *   Crankshaft::Iter([1, 2, 3])->join(' + ')
      *   // => '1 + 2 + 3'
      *
      * Returns the joined string.
@@ -911,7 +870,7 @@ abstract class Iterable implements \IteratorAggregate {
      *
      * Examples
      *
-     *   tt_iter([1, 2, 3, 4, 5])->count()
+     *   Crankshaft::Iter([1, 2, 3, 4, 5])->count()
      *   // => 5
      *
      * Returns the integer number of elements.
@@ -931,15 +890,15 @@ abstract class Iterable implements \IteratorAggregate {
      *
      * Examples
      *
-     *   tt_iter(['a' => 97, 'b' => 98, 'c' => 99, 'd' => 100])->keys()->to_array()
+     *   Crankshaft::Iter(['a' => 97, 'b' => 98, 'c' => 99, 'd' => 100])->keys()->to_array()
      *   // => ['a', 'b', 'c', 'd']
      *
      * Returns an Iterable whose yielded values will be the keys of `$iterable`, and whose keys
      *   will be the integers, starting from 0.
      */
     public function keys() {
-        return tt_combine(
-            tt_count(),
+        return Crankshaft::Combine(
+            Crankshaft::Count(),
             $this->map(function($value, $key) {
                 return $key;
             })
@@ -951,15 +910,15 @@ abstract class Iterable implements \IteratorAggregate {
      *
      * Examples
      *
-     *   tt_iter(['a' => 97, 'b' => 98, 'c' => 99, 'd' => 100])->values()->to_array()
+     *   Crankshaft::Iter(['a' => 97, 'b' => 98, 'c' => 99, 'd' => 100])->values()->to_array()
      *   // => [97, 98, 99, 100]
      *
      * Returns an Iterable whose yielded values will be the values of `$iterable`, and whose keys
      *   will be the integer, starting from 0.
      */
     public function values() {
-        return tt_combine(
-            tt_count(),
+        return Crankshaft::Combine(
+            Crankshaft::Count(),
             $this
         );
     }
@@ -979,19 +938,19 @@ abstract class Iterable implements \IteratorAggregate {
      *
      * Examples
      *
-     *   tt_iter(['a' => 97, 'b' => 98, 'c' => 99])->flip()->to_array()
+     *   Crankshaft::Iter(['a' => 97, 'b' => 98, 'c' => 99])->flip()->to_array()
      *   // => [97 => 'a', 98 => 'b', 99 => 'c']
      *
-     *   tt_iter(['a' => 1, 'b' => 2, 'c' => 1, 'd' => 2, 'e' => 3])->flip()->to_set()
-     *   // => tt_set(['a', 'b', 'c', 'd', 'e'])
+     *   Crankshaft::Iter(['a' => 1, 'b' => 2, 'c' => 1, 'd' => 2, 'e' => 3])->flip()->to_set()
+     *   // => Set(['a', 'b', 'c', 'd', 'e'])
      *
-     *   tt_iter(['a' => 1, 'b' => 2, 'c' => 1, 'd' => 2, 'e' => 3])->flip()->to_array()
+     *   Crankshaft::Iter(['a' => 1, 'b' => 2, 'c' => 1, 'd' => 2, 'e' => 3])->flip()->to_array()
      *   // => [1 => 'c', 2 => 'd', 3 => 'e']
      *
      * Returns an Iterable.
      */
     public function flip() {
-        return tt_iter(new FlippingIterator($this->getIterator()));
+        return Crankshaft::Iter(new FlippingIterator($this->getIterator()));
     }
 
     /**
@@ -1003,13 +962,13 @@ abstract class Iterable implements \IteratorAggregate {
      *
      * Examples
      *
-     *   tt_iter(['x', 'y', 'z'])->cycle()
+     *   Crankshaft::Iter(['x', 'y', 'z'])->cycle()
      *   // => 'x', 'y', 'z', 'x', 'y', 'z', 'x', 'y', ...
      *
      * Returns an Iterable.
      */
     public function cycle() {
-        return tt_iter(new CyclingIterator($this->getIterator()));
+        return Crankshaft::Iter(new CyclingIterator($this->getIterator()));
     }
 
     /**
@@ -1019,32 +978,32 @@ abstract class Iterable implements \IteratorAggregate {
      * $sort_fn - A function taking two elements which returns an integer greater than 0 if the
      *            first argument is greater than the second, an integer less than 0 if the first is
      *            less than the second, and 0 if the two arguments are equal in sort order.
-     *            (default: tt_cmp())
+     *            (default: Crankshaft::Compare())
      *
      * Examples
      *
-     *     tt_iter([2, 3, 2, 1])->sort()
+     *     Crankshaft::Iter([2, 3, 2, 1])->sort()
      *     // => 1, 2, 2, 3
      *
-     *     tt_iter(['aaa', 'a', 'aa', 'aaaa'])->sort(function ($a, $b) {
+     *     Crankshaft::Iter(['aaa', 'a', 'aa', 'aaaa'])->sort(function ($a, $b) {
      *         return strlen($a) - strlen($b);
      *     })
      *     // => 'a', 'aa', 'aaa', 'aaaa'
      *
      * See also
      *
-     *     tt_cmp() - The default sort order function
+     *     Crankshaft::Compare() - The default sort order function
      *
      * Returns an Iterable.
      */
     public function sort(callable $sort_fn=null) {
         if ($sort_fn === null) {
-            $sort_fn = 'tt_cmp';
+            $sort_fn = 'Thumbtack\Crankshaft\Crankshaft::Compare';
         }
 
         $values = $this->to_array();
         usort($values, $sort_fn);
-        return tt_iter($values);
+        return Crankshaft::Iter($values);
     }
 
     /**
@@ -1056,13 +1015,13 @@ abstract class Iterable implements \IteratorAggregate {
      *
      * Examples
      *
-     *     tt_iter([['a' => 30], ['a' => 10], ['a' => 20]])->sort_by_properties(['a' => 1])
+     *     Crankshaft::Iter([['a' => 30], ['a' => 10], ['a' => 20]])->sort_by_properties(['a' => 1])
      *     // => ['a' => 10], ['a' => 20], ['a' => 30]
      *
-     *     tt_iter([['a' => 30], ['a' => 10], ['a' => 20]])->sort_by_properties(['a' => -1])
+     *     Crankshaft::Iter([['a' => 30], ['a' => 10], ['a' => 20]])->sort_by_properties(['a' => -1])
      *     // => ['a' => 30], ['a' => 20], ['a' => 10]
      *
-     *     tt_iter([['a' => 2, 'b' => 3], ['a' => 1, 'b' => 2], ['a' => 1, 'b' => 1]])
+     *     Crankshaft::Iter([['a' => 2, 'b' => 3], ['a' => 1, 'b' => 2], ['a' => 1, 'b' => 1]])
      *         ->sort_by_properties(['a' => 1, 'b' => -1])
      *     // => ['a' => 1, 'b' => 2], ['a' => 1, 'b' => 1], ['a' => 2, 'b' => 3]
      *
@@ -1079,7 +1038,7 @@ abstract class Iterable implements \IteratorAggregate {
                 $a_value = $this->pluck_property($a, $property);
                 $b_value = $this->pluck_property($b, $property);
 
-                $ordering = tt_cmp($a_value, $b_value);
+                $ordering = Crankshaft::compare($a_value, $b_value);
                 if ($ordering !== 0) {
                     return $direction * $ordering;
                 }
@@ -1093,7 +1052,7 @@ abstract class Iterable implements \IteratorAggregate {
      *
      * Examples
      *
-     *     tt_iter([1, 2, 3, 4])->shuffle()->to_array()
+     *     Crankshaft::Iter([1, 2, 3, 4])->shuffle()->to_array()
      *     // => [3, 2, 1, 4] // or something entirely else
      *
      * Returns an Iterable.
@@ -1101,7 +1060,7 @@ abstract class Iterable implements \IteratorAggregate {
     public function shuffle() {
         $values = $this->to_array();
         shuffle($values);
-        return tt_iter($values);
+        return Crankshaft::Iter($values);
     }
 
     /**
@@ -1125,7 +1084,7 @@ abstract class Iterable implements \IteratorAggregate {
      * Returns a Set containing every remaining value in this iterable.
      */
     public function to_set() {
-        return tt_set($this);
+        return Crankshaft::Set($this);
     }
 
     public abstract function getIterator();
@@ -1137,7 +1096,7 @@ abstract class Iterable implements \IteratorAggregate {
         $is_object = is_object($container);
 
         if (is_array($container) || ($is_object && $container instanceof \ArrayAccess)) {
-            return tt_has_key($container, $property) ? $container[$property] : null;
+            return Crankshaft::HasKey($container, $property) ? $container[$property] : null;
         } else if ($is_object) {
             // property_exists() will return true if there's a defined public property for the
             // object's class, even if the instance value of that property is null -- but it
@@ -1166,12 +1125,12 @@ abstract class Iterable implements \IteratorAggregate {
      * Internal: Used to implement max() and min().
      */
     private function optimal($is_better_fn, $key_fn=null) {
-        tt_assert_callable($is_better_fn);
+        Crankshaft::AssertCallable($is_better_fn);
 
         if ($key_fn === null) {
-            $key_fn = 'tt_identity';
+            $key_fn = 'Thumbtack\Crankshaft\Crankshaft::Identity';
         } else {
-            tt_assert_callable($key_fn);
+            Crankshaft::AssertCallable($key_fn);
         }
 
         $initializing = true;
@@ -1199,837 +1158,5 @@ abstract class Iterable implements \IteratorAggregate {
         }
 
         return $result;
-    }
-}
-
-/**
- * Public: Wraps an iterator and gives each element sequential integer keys starting from 0.
- */
-class SequentialKeyIterator implements \OuterIterator {
-    private $iterator;
-    private $position;
-
-    public function __construct(\Iterator $iterator) {
-        $this->iterator = $iterator;
-    }
-
-    public function rewind() {
-        $this->iterator->rewind();
-        $this->position = 0;
-    }
-
-    public function current() {
-        return $this->iterator->current();
-    }
-
-    public function key() {
-        return $this->position;
-    }
-
-    public function valid() {
-        return $this->iterator->valid();
-    }
-
-    public function next() {
-        $this->iterator->next();
-        $this->position++;
-    }
-
-    public function getInnerIterator() {
-        return $this->iterator;
-    }
-}
-
-/**
- * Public: A special exception type used to signal that the end of a generator has been reached.
- *
- * Equivalent to `StopIteration` in Python.
- */
-class GeneratorExhausted extends \RuntimeException {}
-
-/**
- * Public: A simplified Iterator type that only requires subclasses to implement two methods
- * instead of five, and will automatically generate integer keys if the subclass doesn't require
- * specific keys for its values.
- */
-abstract class Generator implements \Iterator {
-    private $current;
-    private $count;
-    private $valid;
-
-    /**
-     * Internal: Called at the start of an iteration run to initialize or reset the generator's
-     * state.
-     *
-     * If your generator has no state to initialize, simply implement an empty method.
-     *
-     * Unlike a Python generator, this class upholds PHP's assumption that all iterators are
-     * rewindable: that at any point, you can start iteration over from the beginning of the
-     * sequence.
-     *
-     * Returns nothing.
-     */
-    protected abstract function setup();
-
-    /**
-     * Internal: Called to generate the next value.
-     *
-     * Returns a KeyValuePair if the generator wants to specify a key with the current value, or
-     *   any other value to use an automatically incrementing integer as the key.
-     * Throws GeneratorExhausted if there are no more values to generate.
-     */
-    protected abstract function advance();
-
-    /**
-     * Public: Implements the PHP Iterator interface.
-     */
-    public final function rewind() {
-        $this->setup();
-
-        $this->count = 0;
-        $this->current = null;
-        $this->valid = true;
-
-        $this->next();
-    }
-
-    /**
-     * Public: Implements the PHP Iterator interface.
-     */
-    public final function next() {
-        try {
-            $next = $this->advance();
-        } catch (GeneratorExhausted $e) {
-            $this->valid = false;
-            $this->current = null;
-
-            return;
-        }
-
-        $this->current = $next instanceof KeyValuePair
-            ? $next
-            : new KeyValuePair($this->count, $next);
-        $this->count++;
-    }
-
-    /**
-     * Public: Implements the PHP Iterator interface.
-     */
-    public final function valid() {
-        return $this->valid;
-    }
-
-    /**
-     * Public: Implements the PHP Iterator interface.
-     */
-    public final function current() {
-        return $this->current->value;
-    }
-
-    /**
-     * Public: Implements the PHP Iterator interface.
-     */
-    public final function key() {
-        return $this->current->key;
-    }
-}
-
-/**
- * Internal: Wraps an Iterator to make the Iterable methods available.
- */
-class IteratorIterable extends Iterable {
-    private $iterator;
-
-    public function __construct(\Iterator $iterator) {
-        $this->iterator = $iterator;
-    }
-
-    public function getIterator() {
-        return $this->iterator;
-    }
-}
-
-/**
- * Internal: An IteratorIterable that is also countable.
- */
-class CountableIteratorIterable extends IteratorIterable implements \Countable {
-    private $count;
-
-    public function __construct($count, \Iterator $iterator) {
-        parent::__construct($iterator);
-        $this->count = $count;
-    }
-
-    public function count() {
-        return $this->count;
-    }
-}
-
-/**
- * Internal: Wraps an IteratorAggregate to make the Iterable methods available.
- */
-class IteratorAggregateIterable extends Iterable {
-    private $aggregate;
-
-    public function __construct(\IteratorAggregate $aggregate) {
-        $this->aggregate = $aggregate;
-    }
-
-    public function getIterator() {
-        return $this->aggregate->getIterator();
-    }
-}
-
-/**
- * Internal: An IteratorAggregateIterable that is also countable.
- */
-class CountableIteratorAggregateIterable extends IteratorAggregateIterable implements \Countable {
-    private $count;
-
-    public function __construct($count, \IteratorAggregate $aggregate) {
-        parent::__construct($aggregate);
-        $this->count = $count;
-    }
-
-    public function count() {
-        return $this->count;
-    }
-}
-
-/**
- * Internal: Wraps an Array to provide the Iterable interface.
- */
-class ArrayIterable extends Iterable implements \Countable, \ArrayAccess {
-    private $array;
-
-    public function __construct(array $array) {
-        $this->array = $array;
-    }
-
-    public function getIterator() {
-        return new \ArrayIterator($this->array);
-    }
-
-    public function count() {
-        return count($this->array);
-    }
-
-    public function offsetExists($key) {
-        return array_key_exists($key, $this->array);
-    }
-
-    public function offsetGet($key) {
-        return $this->offsetExists($key) ? $this->array[$key] : null;
-    }
-
-    public function offsetSet($key, $value) {
-        if ($key === null) {
-            $this->array[] = $value;
-        } else {
-            $this->array[$key] = $value;
-        }
-    }
-
-    public function offsetUnset($key) {
-        unset($this->array[$key]);
-    }
-}
-
-/**
- * Internal: An iterator that implements map().
- */
-class MappingIterator extends \IteratorIterator {
-    private $map_fn;
-
-    public function __construct($traversable, $map_fn) {
-        tt_assert_callable($map_fn);
-
-        parent::__construct($traversable);
-        $this->map_fn = $map_fn;
-    }
-
-    public function current() {
-        $iterator = $this->getInnerIterator();
-        return call_user_func($this->map_fn, $iterator->current(), $iterator->key());
-    }
-}
-
-/**
- * Internal: An iterator that implements map_keys().
- */
-class KeyMappingIterator extends \IteratorIterator {
-    private $map_fn;
-
-    public function __construct($traversable, callable $map_fn) {
-        parent::__construct($traversable);
-        $this->map_fn = $map_fn;
-    }
-
-    public function key() {
-        $iterator = $this->getInnerIterator();
-        return call_user_func($this->map_fn, $iterator->key(), $iterator->current());
-    }
-}
-
-/**
- * Internal: An iterator that implements filter().
- */
-class FilteringIterator extends \FilterIterator {
-    private $filter_fn;
-
-    public function __construct(\Iterator $iterator, $filter_fn) {
-        tt_assert_callable($filter_fn);
-
-        parent::__construct($iterator);
-        $this->filter_fn = $filter_fn;
-    }
-
-    public function accept() {
-        $iterator = $this->getInnerIterator();
-        return call_user_func($this->filter_fn, $iterator->current(), $iterator->key());
-    }
-}
-
-/**
- * Internal: An iterator that implements unique()
- */
-class UniqueFilteringIterator extends Generator {
-    private $inner_iterator;
-    private $grouping_fn;
-    private $seen;
-
-    public function __construct(\Iterator $iterator, callable $filter_fn) {
-        $this->inner_iterator = $iterator;
-        $this->filter_fn = $filter_fn;
-    }
-
-    public function setup() {
-        $this->seen = tt_set();
-        $this->inner_iterator->rewind();
-    }
-
-    protected function advance() {
-        $iterator = $this->inner_iterator;
-
-        while ($iterator->valid()) {
-            $value = $iterator->current();
-            $key = $iterator->key();
-            $group = call_user_func($this->filter_fn, $value, $key);
-
-            $iterator->next();
-            if (!$this->seen->contains($group)) {
-                $this->seen->add($group);
-                return new KeyValuePair($key, $value);
-            }
-        }
-
-        throw new GeneratorExhausted();
-    }
-}
-
-/**
- * Internal: An iterator that implements chain().
- */
-class ChainingIterator implements \Iterator {
-    private $chain;
-    private $current_iterator;
-    private $count;
-
-    /**
-     * Create a chaining iterator.
-     *
-     * $chain - An iterator of arrays or Traversable objects.
-     */
-    public function __construct(\Iterator $chain) {
-        $this->chain = $chain;
-    }
-
-    public function rewind() {
-        $this->chain->rewind();
-        $this->count = 0;
-
-        $this->update_current_iterator();
-        while ($this->current_iterator && !$this->current_iterator->valid()) {
-            $this->chain->next();
-            $this->update_current_iterator();
-        }
-    }
-
-    public function valid() {
-        return $this->current_iterator !== null;
-    }
-
-    public function key() {
-        return $this->count;
-    }
-
-    public function current() {
-        return $this->valid() ? $this->current_iterator->current() : null;
-    }
-
-    public function next() {
-        $this->current_iterator->next();
-        $this->count++;
-
-        while ($this->current_iterator && !$this->current_iterator->valid()) {
-            $this->chain->next();
-            $this->update_current_iterator();
-        }
-    }
-
-    private function update_current_iterator() {
-        $this->current_iterator = $this->chain->valid()
-            ? tt_to_iterator($this->chain->current())
-            : null;
-
-        if ($this->current_iterator !== null) {
-            $this->current_iterator->rewind();
-        }
-    }
-}
-
-/**
- * Internal: An iterator that implements tt_count().
- */
-class SequenceIterator implements \SeekableIterator {
-    protected $start;
-    protected $step;
-
-    private $value;
-    private $position;
-
-    public function __construct($start, $step) {
-        $this->start = $start;
-        $this->step = $step;
-    }
-
-    public function rewind() {
-        $this->value = $this->start;
-        $this->position = 0;
-    }
-
-    public function current() {
-        return $this->value;
-    }
-
-    public function key() {
-        return $this->position;
-    }
-
-    public function next() {
-        $this->value += $this->step;
-        $this->position++;
-    }
-
-    public function valid() {
-        return true;
-    }
-
-    public function seek($position) {
-        if (!is_integer($position) || $position < 0) {
-            throw new \OutOfBoundsException('Cannot seek to ' . var_dump($position, true) . '.');
-        }
-
-        $old_position = $this->position;
-        $old_value = $this->value;
-
-        $this->position = $position;
-        $this->value = $this->start + ($position * $this->step);
-
-        if (!$this->valid()) {
-            $this->position = $old_position;
-            $this->value = $old_value;
-
-            throw new \OutOfBoundsException(var_dump($position, true) . ' is out of bounds.');
-        }
-    }
-}
-
-/**
- * Internal: An iterator that implements tt_range().
- */
-class BoundedSequenceIterator extends SequenceIterator implements \Countable {
-    private $stop;
-    private $impossible;
-
-    public function __construct($start, $stop, $step) {
-        parent::__construct($start, $step);
-        $this->stop = $stop;
-        $this->impossible = (
-            ($this->stop > $this->start && $this->step < 0) ||
-            ($this->stop < $this->start && $this->step > 0)
-        );
-    }
-
-    public function valid() {
-        if ($this->impossible) {
-            return false;
-        } else {
-            return $this->stop >= $this->start
-                ? $this->current() < $this->stop
-                : $this->current() > $this->stop;
-        }
-    }
-
-    public function count() {
-        return intval(($this->stop - $this->start) / $this->step);
-    }
-}
-
-/**
- * Internal: An iterator that implements slice().
- */
-class SliceIterator extends \IteratorIterator implements \SeekableIterator {
-    private $index_iterator;
-    private $position;
-
-    public function __construct(\SeekableIterator $index_iterator, $traversable) {
-        parent::__construct($traversable);
-        $this->index_iterator = $index_iterator;
-        $this->position = null;
-    }
-
-    public function seek($index) {
-        $this->index_iterator->seek($index);
-        $this->update_position();
-    }
-
-    public function current() {
-        return $this->getInnerIterator()->current();
-    }
-
-    public function key() {
-        return $this->getInnerIterator()->key();
-    }
-
-    public function rewind() {
-        $this->seek(0);
-    }
-
-    public function valid() {
-        return $this->getInnerIterator()->valid() && $this->index_iterator->valid();
-    }
-
-    public function next() {
-        $this->index_iterator->next();
-
-        if ($this->index_iterator->valid()) {
-            $this->update_position();
-        }
-    }
-
-    private function update_position() {
-        $desired = $this->index_iterator->current();
-        $iterator = $this->getInnerIterator();
-
-        if ($iterator instanceof \SeekableIterator) {
-            try {
-                $iterator->seek($desired);
-            } catch (\OutOfBoundsException $e) {
-                while ($iterator->valid()) {
-                    $iterator->next();
-                }
-            }
-        } else {
-            if ($this->position === null || $desired < $this->position) {
-                $iterator->rewind();
-                $this->position = 0;
-            }
-
-            while ($iterator->valid() && $desired > $this->position) {
-                $iterator->next();
-                $this->position++;
-            }
-        }
-    }
-}
-
-/**
- * Internal: Used to implement tt_combine().
- */
-class CombiningIterator implements \Iterator {
-    private $key_iterator;
-    private $value_iterator;
-
-    public function __construct(\Iterator $key_iterator, \Iterator $value_iterator) {
-        $this->key_iterator = $key_iterator;
-        $this->value_iterator = $value_iterator;
-    }
-
-    public function rewind() {
-        $this->key_iterator->rewind();
-        $this->value_iterator->rewind();
-    }
-
-    public function current() {
-        return $this->value_iterator->current();
-    }
-
-    public function key() {
-        return $this->key_iterator->current();
-    }
-
-    public function valid() {
-        return $this->key_iterator->valid() && $this->value_iterator->valid();
-    }
-
-    public function next() {
-        $this->key_iterator->next();
-        $this->value_iterator->next();
-    }
-}
-
-/**
- * Internal: Used to implement flip().
- */
-class FlippingIterator extends \IteratorIterator {
-    public function current() {
-        return parent::key();
-    }
-
-    public function key() {
-        return parent::current();
-    }
-}
-
-/**
- * Internal: Used to implement cycle().
- */
-class CyclingIterator implements \OuterIterator {
-    private $iterator;
-    private $count;
-
-    public function __construct(\Iterator $iterator) {
-        $this->iterator = $iterator;
-    }
-
-    public function rewind() {
-        $this->iterator->rewind();
-        $this->count = 0;
-    }
-
-    public function key() {
-        return $this->count;
-    }
-
-    public function current() {
-        return $this->iterator->current();
-    }
-
-    public function valid() {
-        return $this->iterator->valid();
-    }
-
-    public function next() {
-        $this->iterator->next();
-        $this->count++;
-
-        if (!$this->iterator->valid()) {
-            $this->iterator->rewind();
-        }
-    }
-
-    public function getInnerIterator() {
-        return $this->iterator;
-    }
-}
-
-/**
- * Internal: Used to implement tt_repeat().
- */
-class RepeatValueGenerator extends Generator {
-    private $value;
-
-    public function __construct($value) {
-        $this->value = $value;
-    }
-
-    protected function setup() {
-        // Nothing to set up.
-    }
-
-    protected function advance() {
-        return $this->value;
-    }
-}
-
-/**
- * Internal: Used to implement tt_repeat().
- */
-class BoundedRepeatValueGenerator extends RepeatValueGenerator implements \Countable {
-    private $position;
-    private $count;
-
-    public function __construct($value, $count) {
-        parent::__construct($value);
-        $this->count = $count;
-    }
-
-    public function count() {
-        return $this->count;
-    }
-
-    protected function setup() {
-        parent::setup();
-
-        $this->position = 0;
-    }
-
-    protected function advance() {
-        if ($this->position < $this->count) {
-            $this->position++;
-            return parent::advance();
-        } else {
-            throw new GeneratorExhausted();
-        }
-    }
-}
-
-/**
- * Internal: Used to implement tt_zip() and tt_zip_longest().
- */
-class ZipGenerator extends Generator {
-    private $iterators;
-    private $longest;
-    private $fill;
-
-    public function __construct(array $iterators, $longest, $fill=null) {
-        $this->iterators = $iterators;
-        $this->longest = $longest;
-        $this->fill = $fill;
-    }
-
-    protected function setup() {
-        foreach ($this->iterators as $iterator) {
-            $iterator->rewind();
-        }
-    }
-
-    protected function advance() {
-        $invalid = 0;
-        $values = [];
-
-        foreach ($this->iterators as $iterator) {
-            if ($iterator->valid()) {
-                $values[] = $iterator->current();
-                $iterator->next();
-            } else {
-                $invalid++;
-                $values[] = $this->fill;
-            }
-        }
-
-        $done = $this->longest ? $invalid == count($this->iterators) : $invalid > 0;
-        if ($done) {
-            throw new GeneratorExhausted();
-        } else {
-            return $values;
-        }
-    }
-}
-
-class Set extends Iterable implements \Countable {
-    private $hash = [];
-
-    public function __construct($iterable=null) {
-        if ($iterable !== null) {
-            $this->update($iterable);
-        }
-    }
-
-    public function add($item) {
-        $this->hash[$this->get_hash_key($item)] = $item;
-    }
-
-    public function remove($item) {
-        unset($this->hash[$this->get_hash_key($item)]);
-    }
-
-    public function update($items) {
-        foreach ($items as $item) {
-            $this->add($item);
-        }
-    }
-
-    public function intersection(Set $other) {
-        $intersection_set = new Set();
-        foreach ($this as $item) {
-            if ($other->contains($item)) {
-                $intersection_set->add($item);
-            }
-        }
-        return $intersection_set;
-    }
-
-    public function union(Set $other) {
-        $union_set = new Set();
-        $union_set->update($other);
-        $union_set->update($this);
-        return $union_set;
-    }
-
-    public function difference(Set $other) {
-        $difference_set = new Set();
-        foreach ($this as $item) {
-            if (!$other->contains($item)) {
-                $difference_set->add($item);
-            }
-        }
-        return $difference_set;
-    }
-
-    public function equals(Set $other) {
-        if (count($other) !== count($this)) {
-            return false;
-        }
-
-        foreach ($this as $item) {
-            if (!$other->contains($item)) {
-                return false;
-            }
-        }
-
-        return true;
-    }
-
-    public function is_subset(Set $other) {
-        foreach ($this as $item) {
-            if (!$other->contains($item)) {
-                return false;
-            }
-        }
-        return true;
-    }
-
-    public function is_superset(Set $other) {
-        return $other->is_subset($this);
-    }
-
-    public function contains($item) {
-        $key = $this->get_hash_key($item);
-        return array_key_exists($key, $this->hash) && $this->hash[$key] === $item;
-    }
-
-    public function getIterator() {
-        return new SequentialKeyIterator(new \ArrayIterator($this->hash));
-    }
-
-    /**
-     * Deprecated: Use the standard `to_array()` method from Iterable.
-     */
-    public function as_array() {
-        return $this->to_array();
-    }
-
-    public function count() {
-        return count($this->hash);
-    }
-
-    private function get_hash_key($item) {
-        if (!is_scalar($item) && $item !== null) {
-             throw new \InvalidArgumentException('Only scalar values can be stored in a Set.');
-        }
-
-        return gettype($item) . ":$item";
     }
 }

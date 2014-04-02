@@ -1,0 +1,20 @@
+{
+    "name": "thumbtack/crankshaft",
+    "description": "Iteration Utils for PHP similar to Python itertools",
+    "require-dev": {
+        "simpletest/simpletest": "1.1.*"
+    },
+    "license": "MIT",
+    "authors": [
+        {
+            "name": "Chris Mueller",
+            "email": "chris@thumbtack.com"
+        }
+    ],
+    "require": {
+
+    },
+    "autoload": {
+        "psr-0": {"Thumbtack\\": ""}
+    }
+}
