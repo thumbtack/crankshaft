@@ -7,6 +7,10 @@
     "license": "MIT",
     "authors": [
         {
+            "name": "Eric Naeseth",
+            "email": "eric@thumbtack.com"
+        },
+        {
             "name": "Chris Mueller",
             "email": "chris@thumbtack.com"
         }
@@ -16,5 +20,9 @@
     },
     "autoload": {
         "psr-0": {"Thumbtack\\": ""}
+    },
+    "homepage": "https://github.com/thumbtack/crankshaft",
+    "support": {
+        "issues": "https://github.com/thumbtack/crankshaft/issues"
     }
 }
